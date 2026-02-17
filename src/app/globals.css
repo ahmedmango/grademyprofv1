@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@700;800;900&display=swap");
+
+:root {
+  --brand-50: #F3EEFF;
+  --brand-100: #EDE5FF;
+  --brand-300: #A78BFA;
+  --brand-500: #7C3AED;
+  --brand-600: #6D28D9;
+  --brand-900: #1E1133;
+  --bg: #FFFFFF;
+  --bg-soft: #F8F6FC;
+  --border: #EDE8F5;
+  --text: #1E1133;
+  --text-secondary: #6B5F80;
+  --text-muted: #9C93AD;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "DM Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.4s ease both;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease both;
+}
