@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     const { data: review, error: insertError } = await supabase.from("reviews").insert({
       professor_id, course_id, university_id: profResult.data.university_id, anon_user_hash: anonUserHash,
       rating_quality, rating_difficulty, would_take_again: would_take_again ?? null,
-      attendance_mandatory: attendance_mandatory ?? null, uses_textbook: uses_textbook ?? null, grade_received: grade_received || null, grade_received: grade_received || null,
+      attendance_mandatory: attendance_mandatory ?? null, uses_textbook: uses_textbook ?? null, grade_received: grade_received || null,
       tags: validTags, comment: cleanComment, status, toxicity_score: scan.toxicity_score,
       risk_flags: scan.risk_flags, ip_hash: ipHash, user_agent_hash: uaHash, semester_window: semester,
     }).select("id").single();
