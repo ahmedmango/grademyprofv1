@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
   let reviewQuery = supabase
     .from("reviews")
-    .select("id, rating_quality, rating_difficulty, would_take_again, tags, comment, created_at, course_id, courses ( code, title_en )", { count: "exact" })
+    .select("id, rating_quality, rating_difficulty, would_take_again, tags, comment, grade_received, created_at, course_id, courses ( code, title_en )", { count: "exact" })
     .eq("professor_id", professor.id).eq("status", "live");
 
   if (courseId) reviewQuery = reviewQuery.eq("course_id", courseId);

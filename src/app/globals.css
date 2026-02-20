@@ -178,3 +178,16 @@ input:focus, textarea:focus, select:focus {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* DARK MODE OVERRIDES FOR LEGACY CLASSES */
+.dark .bg-white { background-color: var(--bg-surface) !important; }
+.dark .bg-gray-50 { background-color: var(--bg-surface-alt) !important; }
+.dark .bg-gray-100 { background-color: var(--bg-surface-alt) !important; }
+.dark .border-gray-50 { border-color: var(--border) !important; }
+.dark .border-gray-100 { border-color: var(--border) !important; }
+.dark .border-gray-200 { border-color: var(--border) !important; }
+.dark .text-gray-400 { color: var(--text-tertiary) !important; }
+.dark .text-gray-500 { color: var(--text-secondary) !important; }
+.dark .text-gray-600 { color: var(--text-secondary) !important; }
+.dark .text-gray-700 { color: var(--text-primary) !important; }
+.dark .placeholder\:text-gray-400::placeholder { color: var(--text-tertiary) !important; }
