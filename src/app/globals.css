@@ -2,44 +2,179 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@700;800;900&display=swap");
+/* ============================================================
+   DESIGN TOKENS — GradeMyProfessor v3
+   Warm, data-forward, campus intelligence aesthetic
+   ============================================================ */
 
 :root {
-  --brand-50: #F3EEFF;
-  --brand-100: #EDE5FF;
-  --brand-300: #A78BFA;
-  --brand-500: #7C3AED;
-  --brand-600: #6D28D9;
-  --brand-900: #1E1133;
-  --bg: #FFFFFF;
-  --bg-soft: #F8F6FC;
-  --border: #EDE8F5;
-  --text: #1E1133;
-  --text-secondary: #6B5F80;
-  --text-muted: #9C93AD;
+  /* Backgrounds */
+  --bg-primary: #FAFAF8;
+  --bg-surface: #FFFFFF;
+  --bg-surface-alt: #F4F2EE;
+
+  /* Text */
+  --text-primary: #1A1A1A;
+  --text-secondary: #6B6B6B;
+  --text-tertiary: #9B9B9B;
+
+  /* Accent — warm red-orange */
+  --accent: #D95030;
+  --accent-hover: #C44528;
+  --accent-soft: #FDF0ED;
+
+  /* Ratings */
+  --rating-high: #2D8A56;
+  --rating-mid: #D4890A;
+  --rating-low: #C93B3B;
+
+  /* Borders */
+  --border: #E8E5DF;
+  --border-hover: #D1CCC4;
+
+  /* Misc */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --radius-card: 14px;
+  --radius-pill: 8px;
+  --radius-full: 9999px;
+}
+
+.dark {
+  --bg-primary: #111110;
+  --bg-surface: #1C1C1A;
+  --bg-surface-alt: #252523;
+
+  --text-primary: #EDEDEC;
+  --text-secondary: #9B9B9B;
+  --text-tertiary: #6B6B6B;
+
+  --accent: #F06B58;
+  --accent-hover: #E85A45;
+  --accent-soft: #2A1F1D;
+
+  --rating-high: #4ADE80;
+  --rating-mid: #FBBF24;
+  --rating-low: #F87171;
+
+  --border: #2E2E2C;
+  --border-hover: #3E3E3B;
+
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.2);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: "DM Sans", system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body), system-ui, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-@keyframes fadeUp {
+/* RTL support */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+}
+
+.card-flat {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* Rating circle */
+.rating-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.rating-circle.high { background: #ECFDF5; color: var(--rating-high); }
+.rating-circle.mid  { background: #FFFBEB; color: var(--rating-mid); }
+.rating-circle.low  { background: #FEF2F2; color: var(--rating-low); }
+
+.dark .rating-circle.high { background: #14532D40; }
+.dark .rating-circle.mid  { background: #78350F40; }
+.dark .rating-circle.low  { background: #7F1D1D40; }
+
+/* Smooth focus states */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Hide scrollbar for horizontal scroll areas */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Stagger children animation */
+.stagger-children > * {
+  animation: fade-up 0.35s ease-out both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.10s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.14s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.18s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.22s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.26s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.30s; }
+
+@keyframes fade-up {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-up {
-  animation: fadeUp 0.4s ease both;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.4s ease both;
 }
