@@ -191,3 +191,57 @@ input:focus, textarea:focus, select:focus {
 .dark .text-gray-600 { color: var(--text-secondary) !important; }
 .dark .text-gray-700 { color: var(--text-primary) !important; }
 .dark .placeholder\:text-gray-400::placeholder { color: var(--text-tertiary) !important; }
+
+/* Bottom sheet slide-up */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(100%); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Smooth active states for touch */
+.active\:scale-\[0\.97\]:active { transform: scale(0.97); }
+.active\:scale-\[0\.98\]:active { transform: scale(0.98); }
+.active\:scale-95:active { transform: scale(0.95); }
+.active\:scale-90:active { transform: scale(0.90); }
+
+/* Tap highlight removal for mobile */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Dropdown appear */
+@keyframes dropdown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-dropdown {
+  animation: dropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Large tag pill (RMP style) */
+.pill-lg {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+/* Admin login — ensure inputs are visible in dark mode */
+input[type="email"],
+input[type="password"],
+input[type="text"] {
+  color: var(--text-primary, #000) !important;
+  background: var(--bg-surface, #fff) !important;
+}
+
+/* Fix for admin page specifically */
+[class*="admin"] input,
+form input {
+  color: var(--text-primary, #000) !important;
+}

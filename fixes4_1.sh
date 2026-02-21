@@ -1,3 +1,26 @@
+#!/bin/bash
+# ============================================================
+# GradeMyProfessor v4.1 — Simplified Homepage
+# Just logo + search bar with uni dropdown (like RMP)
+# Run from project root: bash fixes4_1.sh
+# ============================================================
+
+set -e
+
+echo "🍎 GradeMyProfessor v4.1 — Clean Homepage"
+echo "==========================================="
+
+if [ ! -f "package.json" ]; then
+  echo "❌ Run this from the project root"
+  exit 1
+fi
+
+# ============================================================
+# HOMEPAGE — Logo + Search bar only
+# ============================================================
+echo "🏠 Rewriting homepage..."
+
+cat > src/components/HomeClient.tsx << 'EOF'
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -221,20 +244,47 @@ export default function HomeClient({
         )}
       </div>
 
-      {/* Stats footer */}
-      <div className="mt-12 flex items-center gap-4">
-        <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
-          <strong className="font-bold" style={{ color: "var(--accent)" }}>{totalUniversities}</strong> universities
-        </span>
-        <span className="text-[10px]" style={{ color: "var(--text-tertiary)", opacity: 0.4 }}>·</span>
-        <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
-          <strong className="font-bold" style={{ color: "var(--accent)" }}>{totalProfessors}</strong> professors
-        </span>
-        <span className="text-[10px]" style={{ color: "var(--text-tertiary)", opacity: 0.4 }}>·</span>
-        <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>
-          <strong className="font-bold" style={{ color: "var(--accent)" }}>{totalReviews}+</strong> reviews
-        </span>
+      {/* Subtle footer stats */}
+      <div className="mt-12 flex items-center gap-4" style={{ color: "var(--text-tertiary)" }}>
+        <span className="text-[10px]">{totalUniversities} universities</span>
+        <span className="text-[10px]">·</span>
+        <span className="text-[10px]">{totalProfessors} professors</span>
+        <span className="text-[10px]">·</span>
+        <span className="text-[10px]">{totalReviews}+ reviews</span>
       </div>
     </div>
   );
 }
+EOF
+
+echo "  ✅ HomeClient rewritten"
+
+# ============================================================
+# CSS — Add dropdown animation
+# ============================================================
+echo "🎨 Adding dropdown animation..."
+
+if ! grep -q "animate-dropdown" src/app/globals.css 2>/dev/null; then
+cat >> src/app/globals.css << 'CSS_EOF'
+
+/* Dropdown appear */
+@keyframes dropdown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-dropdown {
+  animation: dropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+CSS_EOF
+echo "  ✅ Dropdown animation added"
+else
+echo "  ⏭️  Already exists"
+fi
+
+echo ""
+echo "✅ Done! Just the homepage changed."
+echo ""
+echo "  npm run dev → homepage is now logo + search bar"
+echo "  Click search → popular unis dropdown (AUBH, Polytechnic, BIBF)"
+echo "  Type to filter → all unis searchable"
+echo "  No results → 'Add your university' link"
