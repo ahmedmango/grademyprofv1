@@ -75,7 +75,7 @@ function RateForm() {
         }),
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok) { try { localStorage.removeItem("gmp_review_count"); } catch {} 
         setSuccess(true);
       } else {
         setError(data.error || "Failed to submit review");

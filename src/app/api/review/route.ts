@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Ratings must be 0.5–5.0 in 0.5 increments" }, { status: 400 });
 
     const validTags = (tags || []).filter((t: string) => VALID_TAGS.includes(t as any)).slice(0, RATE_LIMITS.MAX_TAGS);
-    const cleanComment = (comment || "").trim().slice(0, RATE_LIMITS.MAX_COMMENT_LENGTH);
+    const cleanComment = (comment || "").trim().slice(0, RATE_LIMITS.MAX_COMMENT_LENGTH).replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[REDACTED]").replace(/\+?973\s?\d{4}\s?\d{4}/g, "[REDACTED]");
 
     // Parallel validation
     const semester = getCurrentSemester();

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import type { Lang } from "@/lib/i18n";
+import { GateProvider } from "./ReviewGate";
 
 type Theme = "light" | "dark" | "system";
 
@@ -30,7 +31,6 @@ export function Providers({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("en");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
 
-  // Initialize from localStorage
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem("gmp_theme") as Theme;
@@ -40,7 +40,6 @@ export function Providers({ children }: { children: ReactNode }) {
     } catch {}
   }, []);
 
-  // Apply theme
   useEffect(() => {
     const apply = () => {
       let resolved: "light" | "dark" = "light";
@@ -51,7 +50,6 @@ export function Providers({ children }: { children: ReactNode }) {
       document.documentElement.classList.toggle("dark", resolved === "dark");
       setResolvedTheme(resolved);
     };
-
     apply();
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => { if (theme === "system") apply(); };
@@ -59,7 +57,6 @@ export function Providers({ children }: { children: ReactNode }) {
     return () => mq.removeEventListener("change", handler);
   }, [theme]);
 
-  // Apply lang/dir
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
@@ -77,7 +74,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{ theme, setTheme, lang, setLang, resolvedTheme }}>
-      {children}
+      <GateProvider>{children}</GateProvider>
     </AppContext.Provider>
   );
 }

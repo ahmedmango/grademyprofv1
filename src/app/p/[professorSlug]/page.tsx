@@ -1,8 +1,7 @@
 import { createServerClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import RateButton from "@/components/RateButton";
 import Link from "next/link";
-import ProfessorClientContent from "./ProfessorClientContent";
+import ProfessorGatedWrapper from "./ProfessorGatedWrapper";
 
 export default async function ProfessorPage({ params }: { params: { professorSlug: string } }) {
   const supabase = createServerClient();
@@ -43,22 +42,13 @@ export default async function ProfessorPage({ params }: { params: { professorSlu
         <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{uni?.name_en}</span>
       </div>
 
-      <ProfessorClientContent
-        profName={prof.name_en}
-        profSlug={prof.slug}
-        profId={prof.id}
-        deptName={dept?.name_en || ""}
-        uniName={uni?.name_en || ""}
-        uniSlug={uni?.slug || ""}
-        avgQuality={Number(agg.avg_quality)}
-        avgDifficulty={Number(agg.avg_difficulty)}
-        wouldTakeAgainPct={Number(agg.would_take_again_pct)}
-        reviewCount={agg.review_count || 0}
-        ratingDist={agg.rating_dist || {}}
-        topTags={agg.top_tags || []}
-        tagDist={agg.tag_dist || {}}
-        courses={courses}
-        reviews={reviews || []}
+      <ProfessorGatedWrapper
+        profName={prof.name_en} profSlug={prof.slug} profId={prof.id}
+        deptName={dept?.name_en || ""} uniName={uni?.name_en || ""} uniSlug={uni?.slug || ""}
+        avgQuality={Number(agg.avg_quality)} avgDifficulty={Number(agg.avg_difficulty)}
+        wouldTakeAgainPct={Number(agg.would_take_again_pct)} reviewCount={agg.review_count || 0}
+        ratingDist={agg.rating_dist || {}} topTags={agg.top_tags || []}
+        tagDist={agg.tag_dist || {}} courses={courses} reviews={reviews || []}
       />
     </div>
   );
