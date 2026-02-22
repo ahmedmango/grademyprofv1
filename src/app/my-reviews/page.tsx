@@ -44,7 +44,7 @@ export default function MyReviewsPage() {
   return (
     <div className="px-5 pb-10">
       <div className="pt-4 flex items-center gap-3 mb-6">
-        <Link href="/" className="text-gray-400 text-lg">←</Link>
+        <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-xl text-lg transition-all duration-150 active:scale-90" style={{ color: "var(--accent)" }}>←</Link>
         <span className="text-xs text-gray-400">Back to Home</span>
       </div>
 

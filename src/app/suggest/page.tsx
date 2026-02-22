@@ -96,7 +96,7 @@ function SuggestForm() {
   return (
     <div className="px-5 pb-10">
       <div className="pt-4 mb-5 flex items-center gap-3">
-        <button onClick={() => router.back()} style={{ color: "var(--text-tertiary)" }} className="text-lg transition-all active:scale-90">←</button>
+        <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-xl text-lg transition-all duration-150 active:scale-90" style={{ color: "var(--accent)" }}>←</button>
         <h1 className="font-display font-bold text-base" style={{ color: "var(--text-primary)" }}>{l.title}</h1>
       </div>
 

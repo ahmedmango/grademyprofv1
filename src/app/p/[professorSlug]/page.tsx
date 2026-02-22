@@ -39,7 +39,7 @@ export default async function ProfessorPage({ params }: { params: { professorSlu
   return (
     <div className="pb-28">
       <div className="px-5 pt-4 flex items-center gap-3 mb-4">
-        <Link href={uni ? `/u/${uni.slug}` : "/"} style={{ color: "var(--text-tertiary)" }} className="text-lg transition-all active:scale-90">←</Link>
+        <Link href={uni ? `/u/${uni.slug}` : "/"} className="w-10 h-10 flex items-center justify-center rounded-xl text-lg transition-all duration-150 active:scale-90" style={{ color: "var(--accent)" }}>←</Link>
         <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{uni?.name_en}</span>
       </div>
 

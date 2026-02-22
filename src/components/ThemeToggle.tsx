@@ -3,20 +3,11 @@
 import { useApp } from "./Providers";
 
 export default function ThemeToggle() {
-  const { theme, setTheme } = useApp();
-  const isDark = theme === "dark";
+  const { resolvedTheme, setTheme } = useApp();
 
   const handleToggle = () => {
-    const next = isDark ? "light" : "dark";
-    setTheme(next);
-    document.documentElement.setAttribute("data-theme", next);
-    document.documentElement.classList.toggle("dark", next === "dark");
-    try { localStorage.setItem("theme", next); } catch {}
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
-
-  // In light mode → show MOON (click to go dark)
-  // In dark mode → show SUN (click to go light)
-  // Colors: black in light mode, white in dark mode (via currentColor)
 
   return (
     <button
@@ -27,30 +18,23 @@ export default function ThemeToggle() {
         border: "1px solid var(--border)",
         color: "var(--text-primary)",
       }}
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
     >
-      {isDark ? (
-        /* SUN — shown in dark mode, click goes to light */
-        <svg width="18" height="18" viewBox="0 0 100 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="50" cy="50" r="18"/>
-          <rect x="47" y="5" width="6" height="18" rx="3"/>
-          <rect x="47" y="77" width="6" height="18" rx="3"/>
-          <rect x="77" y="47" width="18" height="6" rx="3"/>
-          <rect x="5" y="47" width="18" height="6" rx="3"/>
-          <rect x="73.5" y="19.5" width="6" height="18" rx="3" transform="rotate(45 76.5 28.5)"/>
-          <rect x="20.5" y="62.5" width="6" height="18" rx="3" transform="rotate(45 23.5 71.5)"/>
-          <rect x="62.5" y="73.5" width="18" height="6" rx="3" transform="rotate(45 71.5 76.5)"/>
-          <rect x="19.5" y="20.5" width="18" height="6" rx="3" transform="rotate(45 28.5 23.5)"/>
+      {resolvedTheme === "dark" ? (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
         </svg>
       ) : (
-        /* MOON — shown in light mode, click goes to dark */
-        <svg width="18" height="18" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M72 52.6C72 71.8 56.4 87.4 37.2 87.4C23.3 87.4 11.3 79.4 5.3 67.8C9.8 70.2 15 71.5 20.5 71.5C39.7 71.5 55.3 55.9 55.3 36.7C55.3 27.8 52 19.7 46.5 13.5C61.2 16.5 72 33.2 72 52.6Z"
-            fill="currentColor"
-            stroke="currentColor"
-            strokeWidth="4"
-          />
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
       )}
     </button>

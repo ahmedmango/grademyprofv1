@@ -43,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: `
           try {
             const t = localStorage.getItem('gmp_theme');
-            const d = t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme:dark)').matches);
+            const d = t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme:dark)').matches);
             if (d) document.documentElement.classList.add('dark');
             const l = localStorage.getItem('gmp_lang');
             if (l === 'ar') { document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl'; }

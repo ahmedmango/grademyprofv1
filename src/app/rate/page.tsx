@@ -132,7 +132,7 @@ function RateForm() {
     <div className="px-5 pb-10">
       <div className="pt-4 mb-5 flex items-center gap-3">
         <button onClick={() => step > 1 ? setStep(step - 1) : router.back()}
-          style={{ color: "var(--text-tertiary)" }} className="text-lg">←</button>
+          className="w-10 h-10 flex items-center justify-center rounded-xl text-lg transition-all duration-150 active:scale-90" style={{ color: "var(--accent)" }}>←</button>
         <div className="flex-1">
           <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{professorName}</div>
           <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>{courseName}</div>

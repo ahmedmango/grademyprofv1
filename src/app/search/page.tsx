@@ -45,7 +45,7 @@ export default function SearchPage() {
   return (
     <div className="px-5 pb-10">
       <div className="pt-4 mb-5 flex items-center gap-3">
-        <Link href="/" style={{ color: "var(--text-tertiary)" }} className="text-lg">←</Link>
+        <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-xl text-lg transition-all duration-150 active:scale-90" style={{ color: "var(--accent)" }}>←</Link>
         <div className="flex-1 flex items-center gap-2.5 rounded-xl px-4 py-3"
           style={{ background: "var(--accent-soft)", border: "2px solid var(--accent)" }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>

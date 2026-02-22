@@ -23,7 +23,7 @@ export default async function UniversityPage({ params }: { params: { universityS
   return (
     <div className="px-5 pb-10">
       <div className="pt-4 flex items-center gap-3 mb-5">
-        <Link href="/" style={{ color: "var(--text-tertiary)" }} className="text-lg transition-all active:scale-90">←</Link>
+        <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-xl text-lg transition-all duration-150 active:scale-90" style={{ color: "var(--accent)" }}>←</Link>
       </div>
 
       <div className="mb-5">

@@ -14,7 +14,7 @@ interface AppContextType {
 }
 
 const AppContext = createContext<AppContextType>({
-  theme: "system",
+  theme: "light",
   setTheme: () => {},
   lang: "en",
   setLang: () => {},
@@ -26,7 +26,7 @@ export function useApp() {
 }
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
+  const [theme, setThemeState] = useState<Theme>("light");
   const [lang, setLangState] = useState<Lang>("en");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
 
