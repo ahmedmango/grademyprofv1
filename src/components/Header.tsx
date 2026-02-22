@@ -7,7 +7,7 @@ export default function Header() {
   const { theme, setTheme, lang, setLang, resolvedTheme } = useApp();
 
   const cycleTheme = () => {
-    const next = theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
+    const next = resolvedTheme === "dark" ? "light" : "dark";
     setTheme(next);
   };
 
