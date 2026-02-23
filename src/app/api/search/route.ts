@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 
-export const revalidate = 60;
+export const revalidate = 10;
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim();
@@ -96,6 +96,6 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json(results, {
-    headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" },
+    headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" },
   });
 }

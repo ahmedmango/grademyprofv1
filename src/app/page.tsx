@@ -1,7 +1,7 @@
 import { createServerClient } from "@/lib/supabase/server";
 import HomeClient from "@/components/HomeClient";
 
-export const revalidate = 120;
+export const revalidate = 10;
 
 export default async function HomePage() {
   const supabase = createServerClient();

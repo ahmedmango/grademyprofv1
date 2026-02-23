@@ -60,5 +60,5 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     professor, reviews: reviews || [], total_reviews: count || 0,
     page, total_pages: Math.ceil((count || 0) / limit), course_stats: courseStats,
-  }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } });
+  }, { headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" } });
 }
