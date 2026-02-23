@@ -3,7 +3,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { getAnonUserHash } from "@/lib/anon-identity";
 
-const REQUIRED_APPROVED = 1;
 const CACHE_KEY = "gmp_gate_status";
 const CACHE_TTL = 5 * 60 * 1000;
 
@@ -71,11 +70,13 @@ export function GateProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { fetchCount(); }, []);
 
+  // Unlock after 1 SUBMITTED review (not just approved)
+  // This gives users instant access after submitting
   return (
     <GateContext.Provider value={{
       reviewCount,
       approvedCount,
-      isUnlocked: approvedCount >= REQUIRED_APPROVED,
+      isUnlocked: reviewCount >= 1,
       loading,
       refresh,
     }}>
