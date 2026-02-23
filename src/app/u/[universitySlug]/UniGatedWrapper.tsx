@@ -8,7 +8,7 @@ import AppleLogo from "@/components/AppleLogo";
 export default function UniGatedWrapper(props: {
   uniId: string; uniName: string; uniShortName: string | null; uniSlug: string; professors: any[];
 }) {
-  const { isUnlocked, loading, reviewCount } = useGate();
+  const { isUnlocked, loading, reviewCount, approvedCount } = useGate();
 
   if (loading) {
     return (
@@ -21,8 +21,9 @@ export default function UniGatedWrapper(props: {
   // Unlocked — show everything
   if (isUnlocked) return <UniClientContent {...props} />;
 
-  // Locked — show names + departments, hide scores
-  const remaining = Math.max(0, 3 - reviewCount);
+  // Determine state: has submitted but waiting for approval, or hasn't submitted yet
+  const hasSubmitted = reviewCount > 0;
+  const waitingApproval = hasSubmitted && approvedCount < 1;
 
   return (
     <>
@@ -34,12 +35,25 @@ export default function UniGatedWrapper(props: {
             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
           <div className="flex-1">
-            <p className="text-xs font-semibold" style={{ color: "var(--accent)" }}>
-              Rate {remaining} more {remaining === 1 ? "professor" : "professors"} to unlock all ratings
-            </p>
-            <div className="h-1.5 rounded-full mt-1.5 overflow-hidden" style={{ background: "var(--border)" }}>
-              <div className="h-full rounded-full transition-all" style={{ background: "var(--accent)", width: `${(reviewCount / 3) * 100}%` }} />
-            </div>
+            {waitingApproval ? (
+              <>
+                <p className="text-xs font-semibold" style={{ color: "var(--accent)" }}>
+                  Your rating is under review
+                </p>
+                <p className="text-[10px] mt-1" style={{ color: "var(--text-secondary)" }}>
+                  Once approved, you'll unlock all ratings across the platform. Most reviews are approved within 24 hours.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs font-semibold" style={{ color: "var(--accent)" }}>
+                  Rate 1 professor to unlock all ratings
+                </p>
+                <p className="text-[10px] mt-1" style={{ color: "var(--text-secondary)" }}>
+                  Submit a rating and once it's approved, you'll see everyone's reviews.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -62,7 +76,9 @@ export default function UniGatedWrapper(props: {
             <div className="flex-1 min-w-0 py-0.5">
               <div className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{p.name_en}</div>
               <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{p.departments?.name_en}</div>
-              <div className="text-[10px] mt-2" style={{ color: "var(--accent)" }}>Tap to rate →</div>
+              <div className="text-[10px] mt-2" style={{ color: "var(--accent)" }}>
+                {waitingApproval ? "⏳ Approval pending" : "Tap to rate →"}
+              </div>
             </div>
           </Link>
         ))}

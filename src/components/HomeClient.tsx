@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useApp } from "./Providers";
 import AppleLogo from "./AppleLogo";
 
-const POPULAR_SLUGS = ["aubh", "bahrain-polytechnic", "bibf"];
+// Number of universities to show as "Popular" — based on display_order
+const POPULAR_COUNT = 3;
 
 export default function HomeClient({
   universities, topProfessors, recentReviews, totalReviews, totalUniversities, totalProfessors,
@@ -20,10 +21,12 @@ export default function HomeClient({
   const inputRef = useRef<HTMLInputElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Popular unis (top 3)
-  const popular = universities.filter((u: any) =>
-    POPULAR_SLUGS.includes(u.slug)
-  );
+  // Sort universities by display_order (lower = more popular)
+  const sorted = [...universities].sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
+
+  // Popular = top N by display_order
+  const popular = sorted.slice(0, POPULAR_COUNT);
+  const popularIds = new Set(popular.map((u: any) => u.id));
 
   // Filter universities by search
   const filtered = query.trim()
@@ -113,7 +116,7 @@ export default function HomeClient({
         {/* Dropdown */}
         {showDropdown && (
           <div
-            className="absolute top-full left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50 animate-dropdown"
+            className="absolute top-full left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50 animate-dropdown max-h-[60vh] overflow-y-auto"
             style={{
               background: "var(--bg-surface)",
               border: "1px solid var(--border)",
@@ -149,13 +152,13 @@ export default function HomeClient({
                     </button>
                   );
                 })}
-                {/* Divider + all universities */}
+                {/* Divider + all universities (sorted by display_order) */}
                 <div className="px-4 pt-2 pb-1.5" style={{ borderTop: "1px solid var(--border)" }}>
                   <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
                     {lang === "ar" ? "جميع الجامعات" : "All universities"}
                   </span>
                 </div>
-                {universities.filter((u: any) => !POPULAR_SLUGS.includes(u.slug)).map((u: any) => {
+                {sorted.filter((u: any) => !popularIds.has(u.id)).map((u: any) => {
                   const d = uniDisplay(u);
                   return (
                     <button

@@ -3,6 +3,7 @@
 import RateButton from "@/components/RateButton";
 import Link from "next/link";
 import { getTagSentiment, getTagStyles } from "@/lib/tagColors";
+import { getGradeClassification, getClassificationColor, getClassificationBg } from "@/lib/gradeClassification";
 
 function qualityColor(v: number): string {
   if (v >= 4) return "#22C55E";
@@ -47,6 +48,21 @@ function TagPill({ tag }: { tag: string }) {
       }}
     >
       {tag}
+    </span>
+  );
+}
+
+function GradeClassificationBadge({ grade }: { grade: string }) {
+  const classification = getGradeClassification(grade);
+  if (!classification) return null;
+  const color = getClassificationColor(classification);
+  const bg = getClassificationBg(classification);
+  return (
+    <span
+      className="inline-block px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ml-1.5"
+      style={{ color, background: bg }}
+    >
+      {classification}
     </span>
   );
 }
@@ -131,7 +147,7 @@ export default function ProfessorClientContent({
         )}
       </div>
 
-      {/* Rating Distribution — no numbers on Y axis */}
+      {/* Rating Distribution */}
       {reviewCount > 0 && (
         <div className="px-5 mb-5">
           <div className="p-4 rounded-2xl" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
@@ -166,7 +182,7 @@ export default function ProfessorClientContent({
         </div>
       )}
 
-      {/* Top Tags — colored rings */}
+      {/* Top Tags */}
       {topTags.length > 0 && (
         <div className="px-5 mb-5">
           <div className="text-xs font-bold mb-2" style={{ color: "var(--text-primary)" }}>
@@ -199,77 +215,81 @@ export default function ProfessorClientContent({
       <div className="px-5 mb-5">
         <div className="section-label mb-3">{reviewCount} {reviewCount === 1 ? "Student Rating" : "Student Ratings"}</div>
         <div className="space-y-3">
-          {reviews.map((r: any) => (
-            <div key={r.id} className="p-4 rounded-xl" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-              {/* Quality + Difficulty blocks */}
-              <div className="flex gap-3 mb-3">
-                <div className="shrink-0">
-                  <div className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>
-                    Quality
+          {reviews.map((r: any) => {
+            const classification = r.grade_received ? getGradeClassification(r.grade_received) : null;
+            return (
+              <div key={r.id} className="p-4 rounded-xl" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
+                {/* Quality + Difficulty blocks */}
+                <div className="flex gap-3 mb-3">
+                  <div className="shrink-0">
+                    <div className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>
+                      Quality
+                    </div>
+                    <div
+                      className="w-[52px] h-[52px] rounded-lg flex items-center justify-center"
+                      style={{ background: qualityBg(r.rating_quality) }}
+                    >
+                      <span className="text-xl font-extrabold font-display" style={{ color: qualityColor(r.rating_quality) }}>
+                        {Number(r.rating_quality).toFixed(1)}
+                      </span>
+                    </div>
                   </div>
-                  <div
-                    className="w-[52px] h-[52px] rounded-lg flex items-center justify-center"
-                    style={{ background: qualityBg(r.rating_quality) }}
-                  >
-                    <span className="text-xl font-extrabold font-display" style={{ color: qualityColor(r.rating_quality) }}>
-                      {Number(r.rating_quality).toFixed(1)}
-                    </span>
+
+                  <div className="shrink-0">
+                    <div className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>
+                      Difficulty
+                    </div>
+                    <div
+                      className="w-[52px] h-[52px] rounded-lg flex items-center justify-center"
+                      style={{ background: "var(--border)", opacity: 0.7 }}
+                    >
+                      <span className="text-xl font-extrabold font-display" style={{ color: "var(--text-primary)" }}>
+                        {Number(r.rating_difficulty).toFixed(1)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      {r.courses?.code && (
+                        <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{r.courses.code}</span>
+                      )}
+                      <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
+                        {new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                      {r.would_take_again !== null && (
+                        <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
+                          Would Take Again: <strong style={{ color: "var(--text-primary)" }}>{r.would_take_again ? "Yes" : "No"}</strong>
+                        </span>
+                      )}
+                      {r.grade_received && (
+                        <span className="text-[10px] flex items-center" style={{ color: "var(--text-tertiary)" }}>
+                          Grade: <strong className="ml-0.5" style={{ color: GRADE_COLORS[r.grade_received] || "var(--text-primary)" }}>{r.grade_received}</strong>
+                          <GradeClassificationBadge grade={r.grade_received} />
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="shrink-0">
-                  <div className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>
-                    Difficulty
-                  </div>
-                  <div
-                    className="w-[52px] h-[52px] rounded-lg flex items-center justify-center"
-                    style={{ background: "var(--border)", opacity: 0.7 }}
-                  >
-                    <span className="text-xl font-extrabold font-display" style={{ color: "var(--text-primary)" }}>
-                      {Number(r.rating_difficulty).toFixed(1)}
-                    </span>
-                  </div>
-                </div>
+                {/* Comment */}
+                {r.comment && (
+                  <p className="text-sm leading-relaxed mb-2" style={{ color: "var(--text-primary)" }}>{r.comment}</p>
+                )}
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    {r.courses?.code && (
-                      <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{r.courses.code}</span>
-                    )}
-                    <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                      {new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    </span>
+                {/* Tags */}
+                {r.tags?.length > 0 && (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {r.tags.map((tag: string) => (
+                      <TagPill key={tag} tag={tag} />
+                    ))}
                   </div>
-                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
-                    {r.would_take_again !== null && (
-                      <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                        Would Take Again: <strong style={{ color: "var(--text-primary)" }}>{r.would_take_again ? "Yes" : "No"}</strong>
-                      </span>
-                    )}
-                    {r.grade_received && (
-                      <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                        Grade: <strong style={{ color: GRADE_COLORS[r.grade_received] || "var(--text-primary)" }}>{r.grade_received}</strong>
-                      </span>
-                    )}
-                  </div>
-                </div>
+                )}
               </div>
-
-              {/* Comment */}
-              {r.comment && (
-                <p className="text-sm leading-relaxed mb-2" style={{ color: "var(--text-primary)" }}>{r.comment}</p>
-              )}
-
-              {/* Tags — colored rings */}
-              {r.tags?.length > 0 && (
-                <div className="flex gap-1.5 flex-wrap">
-                  {r.tags.map((tag: string) => (
-                    <TagPill key={tag} tag={tag} />
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
 
           {reviews.length === 0 && (
             <div className="text-center py-8" style={{ color: "var(--text-tertiary)" }}>

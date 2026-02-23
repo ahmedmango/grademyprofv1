@@ -1,5 +1,4 @@
 import { createServerClient } from "@/lib/supabase/server";
-import Link from "next/link";
 import HomeClient from "@/components/HomeClient";
 
 export const revalidate = 120;
@@ -8,7 +7,7 @@ export default async function HomePage() {
   const supabase = createServerClient();
 
   const [uniResult, reviewCountResult] = await Promise.all([
-    supabase.from("universities").select("*").eq("is_active", true).order("name_en"),
+    supabase.from("universities").select("*").eq("is_active", true).order("display_order", { ascending: true }).order("name_en"),
     supabase.from("reviews").select("*", { count: "exact", head: true }).eq("status", "live"),
   ]);
 

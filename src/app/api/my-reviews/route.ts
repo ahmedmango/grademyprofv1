@@ -22,5 +22,14 @@ export async function GET(req: NextRequest) {
       : r.status === "pending" || r.status === "flagged" ? "Under Review" : "Removed",
   }));
 
-  return NextResponse.json({ reviews: mapped, count: mapped.length });
+  // Count approved (live or shadow — shadow counts as approved for gate purposes)
+  const approvedCount = (reviews || []).filter(
+    (r: any) => r.status === "live" || r.status === "shadow"
+  ).length;
+
+  return NextResponse.json({
+    reviews: mapped,
+    count: mapped.length,
+    approved_count: approvedCount,
+  });
 }

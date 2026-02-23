@@ -11,7 +11,7 @@ export default function ProfessorGatedWrapper(props: {
   wouldTakeAgainPct: number; reviewCount: number; ratingDist: Record<string, number>;
   topTags: string[]; tagDist: Record<string, number>; courses: any[]; reviews: any[];
 }) {
-  const { isUnlocked, loading, reviewCount: userReviewCount } = useGate();
+  const { isUnlocked, loading, reviewCount: userReviewCount, approvedCount } = useGate();
 
   if (loading) {
     return (
@@ -24,8 +24,9 @@ export default function ProfessorGatedWrapper(props: {
   // Fully unlocked
   if (isUnlocked) return <ProfessorClientContent {...props} />;
 
-  // Locked — show name, dept, courses, Rate button. Hide scores/reviews.
-  const remaining = Math.max(0, 3 - userReviewCount);
+  // Determine state
+  const hasSubmitted = userReviewCount > 0;
+  const waitingApproval = hasSubmitted && approvedCount < 1;
 
   return (
     <>
@@ -59,33 +60,46 @@ export default function ProfessorGatedWrapper(props: {
       <div className="px-5 mb-5">
         <div className="p-6 rounded-2xl text-center" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
           <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: "var(--accent-soft)", border: "2px solid var(--accent)" }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
+            {waitingApproval ? (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            ) : (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            )}
           </div>
 
-          <h3 className="font-display font-bold text-base mb-1" style={{ color: "var(--text-primary)" }}>
-            Ratings &amp; reviews are locked
-          </h3>
-          <p className="text-xs mb-4" style={{ color: "var(--text-secondary)" }}>
-            Rate <strong style={{ color: "var(--accent)" }}>{remaining} more</strong> {remaining === 1 ? "professor" : "professors"} to unlock all ratings across the platform.
-          </p>
-
-          {/* Progress */}
-          <div className="max-w-[200px] mx-auto mb-4">
-            <div className="flex justify-between text-[10px] mb-1" style={{ color: "var(--text-tertiary)" }}>
-              <span>{userReviewCount} / 3</span>
-              <span>{Math.round((userReviewCount / 3) * 100)}%</span>
-            </div>
-            <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
-              <div className="h-full rounded-full transition-all" style={{ background: "var(--accent)", width: `${(userReviewCount / 3) * 100}%` }} />
-            </div>
-          </div>
-
-          <p className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-            Start by rating {props.profName.split(" ").pop()} below ↓
-          </p>
+          {waitingApproval ? (
+            <>
+              <h3 className="font-display font-bold text-base mb-1" style={{ color: "var(--text-primary)" }}>
+                Your rating is under review
+              </h3>
+              <p className="text-xs mb-4" style={{ color: "var(--text-secondary)" }}>
+                Once your rating is approved, all reviews across the platform will unlock for you. Most reviews are approved within <strong style={{ color: "var(--accent)" }}>24 hours</strong>.
+              </p>
+              <Link href="/my-reviews"
+                className="inline-block px-5 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.97]"
+                style={{ background: "var(--accent-soft)", color: "var(--accent)", border: "1px solid var(--accent)" }}>
+                Check status →
+              </Link>
+            </>
+          ) : (
+            <>
+              <h3 className="font-display font-bold text-base mb-1" style={{ color: "var(--text-primary)" }}>
+                Ratings &amp; reviews are locked
+              </h3>
+              <p className="text-xs mb-4" style={{ color: "var(--text-secondary)" }}>
+                Rate <strong style={{ color: "var(--accent)" }}>1 professor</strong> and once it's approved, you'll unlock all ratings across the platform.
+              </p>
+              <p className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
+                Start by rating {props.profName.split(" ").pop()} below ↓
+              </p>
+            </>
+          )}
         </div>
       </div>
 
@@ -111,13 +125,15 @@ export default function ProfessorGatedWrapper(props: {
         </div>
       </div>
 
-      {/* Rate button — ALWAYS available */}
-      <RateButton
-        professorId={props.profId}
-        professorName={props.profName}
-        professorSlug={props.profSlug}
-        courses={props.courses.map((c: any) => ({ id: c.id, code: c.code, title_en: c.title_en }))}
-      />
+      {/* Rate button — ALWAYS available (unless waiting for approval) */}
+      {!waitingApproval && (
+        <RateButton
+          professorId={props.profId}
+          professorName={props.profName}
+          professorSlug={props.profSlug}
+          courses={props.courses.map((c: any) => ({ id: c.id, code: c.code, title_en: c.title_en }))}
+        />
+      )}
     </>
   );
 }
