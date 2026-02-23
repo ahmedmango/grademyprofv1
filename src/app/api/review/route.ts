@@ -28,24 +28,21 @@ export async function POST(req: NextRequest) {
     if (!anonUserHash || anonUserHash.length < 8)
       return NextResponse.json({ error: "Invalid identity token" }, { status: 400 });
 
-    // Require user account
-    if (!user_id) {
-      return NextResponse.json({ error: "You must be signed in to submit a rating" }, { status: 401 });
-    }
+    // If user_id provided, verify it
+    let hasVerifiedAccount = false;
+    if (user_id) {
+      const { data: userAccount } = await supabase
+        .from("user_accounts")
+        .select("id, is_banned")
+        .eq("id", user_id)
+        .single();
 
-    // Verify user exists
-    const { data: userAccount } = await supabase
-      .from("user_accounts")
-      .select("id, is_banned")
-      .eq("id", user_id)
-      .single();
-
-    if (!userAccount) {
-      return NextResponse.json({ error: "Invalid user account" }, { status: 401 });
-    }
-
-    if (userAccount.is_banned) {
-      return NextResponse.json({ error: "Your account has been suspended" }, { status: 403 });
+      if (userAccount) {
+        if (userAccount.is_banned) {
+          return NextResponse.json({ error: "Your account has been suspended" }, { status: 403 });
+        }
+        hasVerifiedAccount = true;
+      }
     }
 
     const validRating = (v: number) => typeof v === "number" && v >= 0.5 && v <= 5.0 && (v * 10) % 5 === 0;
@@ -87,11 +84,6 @@ export async function POST(req: NextRequest) {
     if ((recentSameProf || 0) >= 5) { scan.risk_flags.brigading_suspect = true; scan.suggested_status = "flagged"; }
 
     // Auto-approve logic
-    // A review is auto-approved if:
-    // 1. Content scan is completely clean (toxicity = 0, no flags)
-    // 2. Comment is 30+ characters (shows effort)
-    // 3. Not suspiciously extreme (all 5s with short comment)
-    // 4. User has a registered account
     let status: string;
     
     if (scan.suggested_status === "removed") {
@@ -99,14 +91,13 @@ export async function POST(req: NextRequest) {
     } else if (scan.suggested_status === "flagged") {
       status = "flagged";
     } else {
-      // Check auto-approve criteria
       const isClean = scan.toxicity_score === 0 && Object.keys(scan.risk_flags).length === 0;
       const hasMeaningfulComment = cleanComment.length >= 30;
       const isExtreme = (rating_quality === 5.0 && rating_difficulty <= 1.0) || (rating_quality <= 1.0 && rating_difficulty >= 5.0);
       const extremeWithShortComment = isExtreme && cleanComment.length < 80;
       
-      if (isClean && hasMeaningfulComment && !extremeWithShortComment) {
-        status = "live"; // Auto-approved!
+      if (isClean && hasMeaningfulComment && !extremeWithShortComment && hasVerifiedAccount) {
+        status = "live"; // Auto-approved
       } else {
         status = "pending";
       }
@@ -118,7 +109,7 @@ export async function POST(req: NextRequest) {
       attendance_mandatory: attendance_mandatory ?? null, uses_textbook: uses_textbook ?? null, grade_received: grade_received || null,
       tags: validTags, comment: cleanComment, status, toxicity_score: scan.toxicity_score,
       risk_flags: scan.risk_flags, ip_hash: ipHash, user_agent_hash: uaHash, semester_window: semester,
-      user_id: user_id,
+      user_id: user_id || null,
     }).select("id").single();
 
     if (insertError) { console.error("Insert error:", insertError); return NextResponse.json({ error: "Failed to save review" }, { status: 500 }); }

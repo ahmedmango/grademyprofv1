@@ -8,9 +8,9 @@ const CACHE_KEY = "gmp_gate_status";
 const CACHE_TTL = 5 * 60 * 1000;
 
 interface GateContextType {
-  reviewCount: number;         // total submitted (non-removed)
-  approvedCount: number;       // only status = 'live'
-  isUnlocked: boolean;         // approvedCount >= REQUIRED_APPROVED
+  reviewCount: number;
+  approvedCount: number;
+  isUnlocked: boolean;
   loading: boolean;
   refresh: () => Promise<void>;
 }
@@ -82,8 +82,4 @@ export function GateProvider({ children }: { children: ReactNode }) {
       {children}
     </GateContext.Provider>
   );
-}
-
-export default function ReviewGateBlock() {
-  return null;
 }

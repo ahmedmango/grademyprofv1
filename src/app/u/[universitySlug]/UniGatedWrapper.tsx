@@ -1,14 +1,15 @@
 "use client";
 
 import { useGate } from "@/components/ReviewGate";
+import { useUser } from "@/components/UserProvider";
 import UniClientContent from "./UniClientContent";
 import Link from "next/link";
-import AppleLogo from "@/components/AppleLogo";
 
 export default function UniGatedWrapper(props: {
   uniId: string; uniName: string; uniShortName: string | null; uniSlug: string; professors: any[];
 }) {
   const { isUnlocked, loading, reviewCount, approvedCount } = useGate();
+  const { user } = useUser();
 
   if (loading) {
     return (
@@ -21,7 +22,7 @@ export default function UniGatedWrapper(props: {
   // Unlocked — show everything
   if (isUnlocked) return <UniClientContent {...props} />;
 
-  // Determine state: has submitted but waiting for approval, or hasn't submitted yet
+  // Determine state
   const hasSubmitted = reviewCount > 0;
   const waitingApproval = hasSubmitted && approvedCount < 1;
 
@@ -41,8 +42,11 @@ export default function UniGatedWrapper(props: {
                   Your rating is under review
                 </p>
                 <p className="text-[10px] mt-1" style={{ color: "var(--text-secondary)" }}>
-                  Once approved, you'll unlock all ratings across the platform. Most reviews are approved within 24 hours.
+                  Once approved, you'll unlock all ratings. Most reviews are approved within 24 hours.
                 </p>
+                <Link href="/my-reviews" className="inline-block mt-2 text-[10px] font-semibold underline" style={{ color: "var(--accent)" }}>
+                  Check status →
+                </Link>
               </>
             ) : (
               <>
@@ -50,7 +54,7 @@ export default function UniGatedWrapper(props: {
                   Rate 1 professor to unlock all ratings
                 </p>
                 <p className="text-[10px] mt-1" style={{ color: "var(--text-secondary)" }}>
-                  Submit a rating and once it's approved, you'll see everyone's reviews.
+                  Pick any professor below and share your experience to unlock the platform.
                 </p>
               </>
             )}
@@ -58,7 +62,7 @@ export default function UniGatedWrapper(props: {
         </div>
       </div>
 
-      {/* Professor list — names visible, scores hidden */}
+      {/* Professor list — names visible, tap goes to professor page where they can rate */}
       <div className="space-y-3">
         {props.professors.map((p: any) => (
           <Link key={p.id} href={`/p/${p.slug}`}
@@ -76,8 +80,8 @@ export default function UniGatedWrapper(props: {
             <div className="flex-1 min-w-0 py-0.5">
               <div className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{p.name_en}</div>
               <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{p.departments?.name_en}</div>
-              <div className="text-[10px] mt-2" style={{ color: "var(--accent)" }}>
-                {waitingApproval ? "⏳ Approval pending" : "Tap to rate →"}
+              <div className="text-[10px] mt-2 font-semibold" style={{ color: "var(--accent)" }}>
+                {waitingApproval ? "⏳ Approval pending" : "Tap to rate & unlock →"}
               </div>
             </div>
           </Link>
