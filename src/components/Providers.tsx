@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import type { Lang } from "@/lib/i18n";
 import { GateProvider } from "./ReviewGate";
+import { UserProvider } from "./UserProvider";
 
 type Theme = "light" | "dark" | "system";
 
@@ -74,7 +75,9 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{ theme, setTheme, lang, setLang, resolvedTheme }}>
-      <GateProvider>{children}</GateProvider>
+      <UserProvider>
+        <GateProvider>{children}</GateProvider>
+      </UserProvider>
     </AppContext.Provider>
   );
 }

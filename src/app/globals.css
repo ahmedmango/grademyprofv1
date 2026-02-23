@@ -3,245 +3,194 @@
 @tailwind utilities;
 
 /* ============================================================
-   DESIGN TOKENS — GradeMyProfessor v3
-   Warm, data-forward, campus intelligence aesthetic
+   DESIGN TOKENS — Light (default)
    ============================================================ */
-
 :root {
-  /* Backgrounds */
-  --bg-primary: #FAFAF8;
+  --bg-page: #FAFAF8;
   --bg-surface: #FFFFFF;
-  --bg-surface-alt: #F4F2EE;
-
-  /* Text */
-  --text-primary: #1A1A1A;
-  --text-secondary: #6B6B6B;
-  --text-tertiary: #9B9B9B;
-
-  /* Accent — warm red-orange */
-  --accent: #D95030;
-  --accent-hover: #C44528;
-  --accent-soft: #FDF0ED;
-
-  /* Ratings */
-  --rating-high: #2D8A56;
-  --rating-mid: #D4890A;
-  --rating-low: #C93B3B;
-
-  /* Borders */
-  --border: #E8E5DF;
-  --border-hover: #D1CCC4;
-
-  /* Misc */
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02);
-  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
-  --radius-card: 14px;
-  --radius-pill: 8px;
-  --radius-full: 9999px;
+  --bg-surface-alt: #F3F3F0;
+  --text-primary: #1A1A19;
+  --text-secondary: #4A4A48;
+  --text-tertiary: #8A8A86;
+  --border: #E8E8E4;
+  --accent: #D4542B;
+  --accent-soft: #D4542B12;
+  --accent-hover: #BB4424;
+  --rating-high: #22C55E;
+  --rating-mid: #EAB308;
+  --rating-low: #EF4444;
+  --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
 }
 
+/* ============================================================
+   DARK THEME
+   ============================================================ */
 .dark {
-  --bg-primary: #111110;
+  --bg-page: #111110;
   --bg-surface: #1C1C1A;
-  --bg-surface-alt: #252523;
-
-  --text-primary: #EDEDEC;
-  --text-secondary: #9B9B9B;
-  --text-tertiary: #6B6B6B;
-
-  --accent: #F06B58;
-  --accent-hover: #E85A45;
-  --accent-soft: #2A1F1D;
-
-  --rating-high: #4ADE80;
-  --rating-mid: #FBBF24;
-  --rating-low: #F87171;
-
-  --border: #2E2E2C;
-  --border-hover: #3E3E3B;
-
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.2);
-  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.3);
+  --bg-surface-alt: #242422;
+  --text-primary: #F5F5F3;
+  --text-secondary: #B0B0AC;
+  --text-tertiary: #6A6A66;
+  --border: #2A2A28;
+  --accent: #E8714D;
+  --accent-soft: #E8714D15;
+  --accent-hover: #F08060;
 }
 
 /* ============================================================
    BASE STYLES
    ============================================================ */
+* { -webkit-tap-highlight-color: transparent; }
 
-html {
-  scroll-behavior: smooth;
+body {
+  font-family: var(--font-body);
+  background: var(--bg-page);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: var(--font-body), system-ui, sans-serif;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-/* RTL support */
-[dir="rtl"] {
-  text-align: right;
-}
+.font-display { font-family: var(--font-display); }
+.font-body { font-family: var(--font-body); }
+.bg-page { background: var(--bg-page); }
 
 /* ============================================================
    UTILITY CLASSES
    ============================================================ */
-
-.card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
-  transition: all 0.2s ease;
-}
-
-.card:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-1px);
-}
-
 .card-flat {
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-}
-
-.pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  font-size: 11px;
-  font-weight: 500;
-  background: var(--accent-soft);
-  color: var(--accent);
+  border-radius: 1rem;
 }
 
 .section-label {
+  font-family: var(--font-display);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-tertiary);
 }
 
-/* Rating circle */
-.rating-circle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 20px;
-  flex-shrink: 0;
-}
-.rating-circle.high { background: #ECFDF5; color: var(--rating-high); }
-.rating-circle.mid  { background: #FFFBEB; color: var(--rating-mid); }
-.rating-circle.low  { background: #FEF2F2; color: var(--rating-low); }
-
-.dark .rating-circle.high { background: #14532D40; }
-.dark .rating-circle.mid  { background: #78350F40; }
-.dark .rating-circle.low  { background: #7F1D1D40; }
-
-/* Smooth focus states */
-input:focus, textarea:focus, select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-/* Hide scrollbar for horizontal scroll areas */
-.hide-scrollbar::-webkit-scrollbar { display: none; }
-.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* Stagger children animation */
-.stagger-children > * {
-  animation: fade-up 0.35s ease-out both;
-}
-.stagger-children > *:nth-child(1) { animation-delay: 0.02s; }
-.stagger-children > *:nth-child(2) { animation-delay: 0.06s; }
-.stagger-children > *:nth-child(3) { animation-delay: 0.10s; }
-.stagger-children > *:nth-child(4) { animation-delay: 0.14s; }
-.stagger-children > *:nth-child(5) { animation-delay: 0.18s; }
-.stagger-children > *:nth-child(6) { animation-delay: 0.22s; }
-.stagger-children > *:nth-child(7) { animation-delay: 0.26s; }
-.stagger-children > *:nth-child(8) { animation-delay: 0.30s; }
-
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* DARK MODE OVERRIDES FOR LEGACY CLASSES */
-.dark .bg-white { background-color: var(--bg-surface) !important; }
-.dark .bg-gray-50 { background-color: var(--bg-surface-alt) !important; }
-.dark .bg-gray-100 { background-color: var(--bg-surface-alt) !important; }
-.dark .border-gray-50 { border-color: var(--border) !important; }
-.dark .border-gray-100 { border-color: var(--border) !important; }
-.dark .border-gray-200 { border-color: var(--border) !important; }
-.dark .text-gray-400 { color: var(--text-tertiary) !important; }
-.dark .text-gray-500 { color: var(--text-secondary) !important; }
-.dark .text-gray-600 { color: var(--text-secondary) !important; }
-.dark .text-gray-700 { color: var(--text-primary) !important; }
-.dark .placeholder\:text-gray-400::placeholder { color: var(--text-tertiary) !important; }
-
-/* Bottom sheet slide-up */
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(100%); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-slide-up {
-  animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Smooth active states for touch */
-.active\:scale-\[0\.97\]:active { transform: scale(0.97); }
-.active\:scale-\[0\.98\]:active { transform: scale(0.98); }
-.active\:scale-95:active { transform: scale(0.95); }
-.active\:scale-90:active { transform: scale(0.90); }
-
-/* Tap highlight removal for mobile */
-* { -webkit-tap-highlight-color: transparent; }
-
-/* Dropdown appear */
 @keyframes dropdown {
-  from { opacity: 0; transform: translateY(-8px); }
+  from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
-.animate-dropdown {
-  animation: dropdown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+.animate-fade-up { animation: fade-up 0.3s ease-out both; }
+.animate-dropdown { animation: dropdown 0.2s ease-out both; }
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+/* ============================================================
+   DESKTOP COMPATIBILITY
+   ============================================================ */
+
+/* Remove mobile-only max-width restrictions */
+@media (min-width: 640px) {
+  /* Wider container for tablets and desktops */
+  .max-w-2xl {
+    max-width: 48rem;
+  }
+
+  /* University page - grid layout for professors */
+  .professors-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  /* Better padding on wider screens */
+  .px-5 {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
 }
 
-/* Large tag pill (RMP style) */
-.pill-lg {
-  display: inline-block;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
+@media (min-width: 1024px) {
+  .max-w-2xl {
+    max-width: 56rem;
+  }
+
+  .professors-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Reviews in 2-column layout on large screens */
+  .reviews-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  /* Rate form centered and contained */
+  .rate-form-container {
+    max-width: 32rem;
+    margin: 0 auto;
+  }
+
+  /* Auth form centered */
+  .auth-container {
+    max-width: 28rem;
+    margin: 0 auto;
+  }
 }
 
-/* Admin login — ensure inputs are visible in dark mode */
-input[type="email"],
-input[type="password"],
-input[type="text"] {
-  color: var(--text-primary, #000) !important;
-  background: var(--bg-surface, #fff) !important;
+@media (min-width: 1280px) {
+  .max-w-2xl {
+    max-width: 64rem;
+  }
+
+  .professors-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
-/* Fix for admin page specifically */
-[class*="admin"] input,
-form input {
-  color: var(--text-primary, #000) !important;
+/* ============================================================
+   FORM INPUTS — consistent focus states
+   ============================================================ */
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  outline: none;
+}
+
+/* ============================================================
+   PLACEHOLDER COLORS
+   ============================================================ */
+::placeholder {
+  color: var(--text-tertiary);
+  opacity: 0.7;
+}
+
+/* ============================================================
+   SELECTION
+   ============================================================ */
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+@media print {
+  body { background: white; color: black; }
+  header, .no-print { display: none !important; }
 }

@@ -20,12 +20,33 @@ export async function POST(req: NextRequest) {
     const uaHash = hashString(req.headers.get("user-agent") || "");
 
     const { professor_id, course_id, rating_quality, rating_difficulty,
-      would_take_again, attendance_mandatory, uses_textbook, grade_received, tags, comment } = body;
+      would_take_again, attendance_mandatory, uses_textbook, grade_received, 
+      tags, comment, user_id } = body;
 
     if (!professor_id || !course_id || !rating_quality || !rating_difficulty)
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     if (!anonUserHash || anonUserHash.length < 8)
       return NextResponse.json({ error: "Invalid identity token" }, { status: 400 });
+
+    // Require user account
+    if (!user_id) {
+      return NextResponse.json({ error: "You must be signed in to submit a rating" }, { status: 401 });
+    }
+
+    // Verify user exists
+    const { data: userAccount } = await supabase
+      .from("user_accounts")
+      .select("id, is_banned")
+      .eq("id", user_id)
+      .single();
+
+    if (!userAccount) {
+      return NextResponse.json({ error: "Invalid user account" }, { status: 401 });
+    }
+
+    if (userAccount.is_banned) {
+      return NextResponse.json({ error: "Your account has been suspended" }, { status: 403 });
+    }
 
     const validRating = (v: number) => typeof v === "number" && v >= 0.5 && v <= 5.0 && (v * 10) % 5 === 0;
     if (!validRating(rating_quality) || !validRating(rating_difficulty))
@@ -59,12 +80,37 @@ export async function POST(req: NextRequest) {
 
     const scan = scanContent(cleanComment);
 
+    // Brigading detection
     const fiveMinAgo = new Date(Date.now() - 300000).toISOString();
     const { count: recentSameProf } = await supabase.from("reviews").select("*", { count: "exact", head: true })
       .eq("professor_id", professor_id).gte("created_at", fiveMinAgo);
     if ((recentSameProf || 0) >= 5) { scan.risk_flags.brigading_suspect = true; scan.suggested_status = "flagged"; }
 
-    const status = scan.suggested_status === "removed" ? "removed" : scan.suggested_status === "flagged" ? "flagged" : "pending";
+    // Auto-approve logic
+    // A review is auto-approved if:
+    // 1. Content scan is completely clean (toxicity = 0, no flags)
+    // 2. Comment is 30+ characters (shows effort)
+    // 3. Not suspiciously extreme (all 5s with short comment)
+    // 4. User has a registered account
+    let status: string;
+    
+    if (scan.suggested_status === "removed") {
+      status = "removed";
+    } else if (scan.suggested_status === "flagged") {
+      status = "flagged";
+    } else {
+      // Check auto-approve criteria
+      const isClean = scan.toxicity_score === 0 && Object.keys(scan.risk_flags).length === 0;
+      const hasMeaningfulComment = cleanComment.length >= 30;
+      const isExtreme = (rating_quality === 5.0 && rating_difficulty <= 1.0) || (rating_quality <= 1.0 && rating_difficulty >= 5.0);
+      const extremeWithShortComment = isExtreme && cleanComment.length < 80;
+      
+      if (isClean && hasMeaningfulComment && !extremeWithShortComment) {
+        status = "live"; // Auto-approved!
+      } else {
+        status = "pending";
+      }
+    }
 
     const { data: review, error: insertError } = await supabase.from("reviews").insert({
       professor_id, course_id, university_id: profResult.data.university_id, anon_user_hash: anonUserHash,
@@ -72,17 +118,29 @@ export async function POST(req: NextRequest) {
       attendance_mandatory: attendance_mandatory ?? null, uses_textbook: uses_textbook ?? null, grade_received: grade_received || null,
       tags: validTags, comment: cleanComment, status, toxicity_score: scan.toxicity_score,
       risk_flags: scan.risk_flags, ip_hash: ipHash, user_agent_hash: uaHash, semester_window: semester,
+      user_id: user_id,
     }).select("id").single();
 
     if (insertError) { console.error("Insert error:", insertError); return NextResponse.json({ error: "Failed to save review" }, { status: 500 }); }
 
     supabase.from("rate_limits").insert({ anon_user_hash: anonUserHash, ip_hash: ipHash }).then();
 
+    // If auto-approved, refresh aggregates immediately
+    if (status === "live") {
+      await supabase.rpc("refresh_professor_aggregates", { p_professor_id: professor_id });
+    }
+
+    const messages: Record<string, string> = {
+      live: "Your review has been published! Thank you for helping fellow students.",
+      pending: "Your review has been submitted and is pending moderation. Most reviews are approved within 24 hours.",
+      flagged: "Your review has been submitted and is being reviewed by our team.",
+      removed: "Your review could not be published due to content policy violations.",
+    };
+
     return NextResponse.json({
       success: true, review_id: review.id, status,
-      message: status === "pending" ? "Your review has been submitted and is pending moderation. Most reviews go live within 24 hours."
-        : "Your review has been submitted and is being reviewed by our team.",
-      points_earned: cleanComment.length >= 30 ? 50 : 30,
+      auto_approved: status === "live",
+      message: messages[status] || messages.pending,
     }, { status: 201 });
   } catch (err) {
     console.error("Review submission error:", err);

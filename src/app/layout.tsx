@@ -56,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${jakarta.variable} ${dmSans.variable} font-body min-h-screen bg-page`}>
         <Providers>
-          <div className="max-w-lg mx-auto">
+          <div className="max-w-2xl mx-auto">
             <Header />
             <main>{children}</main>
           </div>

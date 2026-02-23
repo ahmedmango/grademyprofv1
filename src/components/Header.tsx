@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useApp } from "./Providers";
+import { useUser } from "./UserProvider";
 
 export default function Header() {
   const { theme, setTheme, lang, setLang, resolvedTheme } = useApp();
+  const { user, logout } = useUser();
 
   const cycleTheme = () => {
     const next = resolvedTheme === "dark" ? "light" : "dark";
@@ -17,11 +19,50 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 px-5 py-3 flex items-center justify-between bg-page/80 backdrop-blur-lg border-b" style={{ borderColor: "var(--border)" }}>
-      <Link href="/" className="font-display font-extrabold text-lg tracking-tight" style={{ color: "var(--accent)" }}>
-        {lang === "ar" ? "قيّم" : "GMP"}
-      </Link>
+      <div className="flex items-center gap-4">
+        <Link href="/" className="font-display font-extrabold text-lg tracking-tight" style={{ color: "var(--accent)" }}>
+          {lang === "ar" ? "قيّم" : "GMP"}
+        </Link>
+        {/* Desktop nav links */}
+        <nav className="hidden sm:flex items-center gap-3">
+          <Link href="/search" className="text-xs font-medium transition-colors hover:opacity-80" style={{ color: "var(--text-secondary)" }}>
+            Search
+          </Link>
+          <Link href="/my-reviews" className="text-xs font-medium transition-colors hover:opacity-80" style={{ color: "var(--text-secondary)" }}>
+            My Reviews
+          </Link>
+        </nav>
+      </div>
 
       <div className="flex items-center gap-2">
+        {/* User status */}
+        {user ? (
+          <div className="flex items-center gap-2">
+            <span className="hidden sm:inline text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+              {user.username}
+            </span>
+            <button
+              onClick={logout}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+              style={{
+                background: "var(--bg-surface-alt)",
+                color: "var(--text-secondary)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              Log out
+            </button>
+          </div>
+        ) : (
+          <Link
+            href="/auth"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
+            style={{ background: "var(--accent)", color: "#fff" }}
+          >
+            Sign in
+          </Link>
+        )}
+
         <button
           onClick={toggleLang}
           className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors"
