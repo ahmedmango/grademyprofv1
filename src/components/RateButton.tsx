@@ -60,7 +60,7 @@ export default function RateButton({
                     handleRate(c.id, `${c.code} ${c.title_en}`);
                   }}
                   className="w-full text-left p-3.5 rounded-xl transition-all duration-150 active:scale-[0.98]"
-                  style={{ background: "var(--bg-surface-alt, var(--bg-primary))", border: "1px solid var(--border)" }}
+                  style={{ background: "var(--bg-surface-alt)", border: "1px solid var(--border)" }}
                 >
                   <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>{c.code}</span>
                   <span className="text-sm ml-2" style={{ color: "var(--text-primary)" }}>{c.title_en}</span>
@@ -72,7 +72,7 @@ export default function RateButton({
       )}
 
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg px-5 pb-6 pt-3 z-50"
-        style={{ background: "linear-gradient(transparent, var(--bg-primary) 30%)" }}>
+        style={{ background: "linear-gradient(transparent, var(--bg-page) 30%)" }}>
         <button
           onClick={() => handleRate()}
           className="block w-full py-4 rounded-2xl text-white text-center font-bold text-base transition-all duration-200 active:scale-[0.97]"

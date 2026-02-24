@@ -51,6 +51,7 @@ export default function SearchPage() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)}
             placeholder={t(lang, "search_placeholder")}
+            autoCorrect="off" autoCapitalize="off" spellCheck={false}
             className="flex-1 bg-transparent outline-none text-sm" style={{ color: "var(--text-primary)" }} />
           {q && <button onClick={() => setQ("")} style={{ color: "var(--text-tertiary)" }} className="text-sm">✕</button>}
         </div>

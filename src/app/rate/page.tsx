@@ -315,6 +315,7 @@ function RateForm() {
             <label className="block text-xs font-semibold mb-2" style={{ color: "var(--text-secondary)" }}>Review (optional)</label>
             <textarea value={comment} onChange={(e) => setComment(e.target.value)}
               placeholder="What should other students know about this professor?" rows={4} maxLength={1000}
+              autoCorrect="off" autoCapitalize="off" spellCheck={false}
               className="w-full p-3.5 rounded-xl text-sm resize-none outline-none"
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
             <div className="flex justify-between mt-1">

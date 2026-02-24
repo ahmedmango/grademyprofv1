@@ -101,6 +101,7 @@ export default function HomeClient({
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setFocused(true)}
             placeholder={lang === "ar" ? "ابحث عن جامعتك..." : "Search for your university..."}
+            autoCorrect="off" autoCapitalize="off" spellCheck={false}
             className="flex-1 bg-transparent text-sm outline-none"
             style={{ color: "var(--text-primary)" }}
           />

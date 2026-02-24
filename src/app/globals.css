@@ -74,6 +74,17 @@ body {
   color: var(--text-tertiary);
 }
 
+.pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent);
+  white-space: nowrap;
+}
+
 /* ============================================================
    ANIMATIONS
    ============================================================ */
@@ -157,8 +168,14 @@ body {
 }
 
 /* ============================================================
-   FORM INPUTS — consistent focus states
+   FORM INPUTS — consistent focus states + disable autocorrect
    ============================================================ */
+input, textarea {
+  -webkit-autocorrect: off;
+  autocorrect: off;
+  autocapitalize: off;
+  spellcheck: false;
+}
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent) !important;
   box-shadow: 0 0 0 3px var(--accent-soft);
