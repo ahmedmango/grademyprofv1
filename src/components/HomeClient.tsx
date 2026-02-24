@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "./Providers";
 import AppleLogo from "./AppleLogo";
+import { smartMatch } from "@/lib/smartSearch";
 
 // Number of universities to show as "Popular" — based on display_order
 const POPULAR_COUNT = 3;
@@ -30,14 +31,9 @@ export default function HomeClient({
 
   // Filter universities by search
   const filtered = query.trim()
-    ? universities.filter((u: any) => {
-        const q = query.toLowerCase();
-        return (
-          u.name_en.toLowerCase().includes(q) ||
-          (u.short_name && u.short_name.toLowerCase().includes(q)) ||
-          (u.name_ar && u.name_ar.includes(query))
-        );
-      })
+    ? universities.filter((u: any) =>
+        smartMatch(query, u.name_en, u.short_name, u.name_ar)
+      )
     : [];
 
   // What to show in dropdown

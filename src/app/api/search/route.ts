@@ -2,48 +2,60 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
+function sanitizeWord(w: string): string {
+  return w.replace(/[^\w\-.']/g, "").slice(0, 50);
+}
+
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim();
   const type = req.nextUrl.searchParams.get("type") || "all";
 
+  const empty = { professors: [], courses: [], course_professors: [], universities: [] };
   if (!q || q.length < 1) {
-    return NextResponse.json({ professors: [], courses: [], course_professors: [], universities: [] }, { headers: NO_STORE_HEADERS });
+    return NextResponse.json(empty, { headers: NO_STORE_HEADERS });
   }
 
-  const sanitized = q.replace(/[^\w\s\-.']/g, "").slice(0, 100);
-  if (!sanitized) return NextResponse.json({ professors: [], courses: [], course_professors: [], universities: [] }, { headers: NO_STORE_HEADERS });
+  const words = q.split(/\s+/).map(sanitizeWord).filter(Boolean).slice(0, 6);
+  if (words.length === 0) return NextResponse.json(empty, { headers: NO_STORE_HEADERS });
+
+  const full = words.join(" ");
 
   const supabase = createServerClient();
   const results: { professors: any[]; courses: any[]; course_professors: any[]; universities: any[] } = {
     professors: [], courses: [], course_professors: [], universities: [],
   };
 
-  // Always search universities (by name OR acronym)
+  // Universities — every word must appear in name_en OR short_name OR name_ar
   {
-    const { data } = await supabase
+    let qb = supabase
       .from("universities")
       .select("id, name_en, name_ar, slug, short_name")
-      .eq("is_active", true)
-      .or(`name_en.ilike.%${sanitized}%,short_name.ilike.%${sanitized}%,name_ar.ilike.%${sanitized}%`)
-      .order("name_en")
-      .limit(5);
+      .eq("is_active", true);
 
+    for (const w of words) {
+      qb = qb.or(`name_en.ilike.%${w}%,short_name.ilike.%${w}%,name_ar.ilike.%${w}%`);
+    }
+
+    const { data } = await qb.order("name_en").limit(5);
     results.universities = (data || []).map((u: any) => ({
       id: u.id, name_en: u.name_en, name_ar: u.name_ar, slug: u.slug, short_name: u.short_name,
     }));
   }
 
-  // Search professors
+  // Professors — every word must appear in name_en OR name_ar
   if (type === "all" || type === "professors") {
-    const { data } = await supabase
+    let qb = supabase
       .from("professors")
       .select(`id, name_en, name_ar, slug, photo_url,
         departments ( name_en ), universities ( name_en, slug, short_name ),
         aggregates_professor ( avg_quality, avg_difficulty, review_count, would_take_again_pct, top_tags )`)
-      .eq("is_active", true)
-      .or(`name_en.ilike.%${sanitized}%,name_ar.ilike.%${sanitized}%`)
-      .order("name_en").limit(12);
+      .eq("is_active", true);
 
+    for (const w of words) {
+      qb = qb.or(`name_en.ilike.%${w}%,name_ar.ilike.%${w}%`);
+    }
+
+    const { data } = await qb.order("name_en").limit(12);
     results.professors = (data || []).map((p: any) => ({
       id: p.id, name_en: p.name_en, name_ar: p.name_ar, slug: p.slug,
       department: p.departments?.name_en || null,
@@ -57,14 +69,17 @@ export async function GET(req: NextRequest) {
     }));
   }
 
-  // Search courses
+  // Courses — every word must appear in code OR title_en
   if (type === "all" || type === "courses") {
-    const { data } = await supabase
+    let qb = supabase
       .from("courses")
-      .select(`id, code, title_en, slug, universities ( name_en, slug, short_name ), departments ( name_en )`)
-      .or(`code.ilike.%${sanitized}%,title_en.ilike.%${sanitized}%`)
-      .order("code").limit(12);
+      .select(`id, code, title_en, slug, universities ( name_en, slug, short_name ), departments ( name_en )`);
 
+    for (const w of words) {
+      qb = qb.or(`code.ilike.%${w}%,title_en.ilike.%${w}%`);
+    }
+
+    const { data } = await qb.order("code").limit(12);
     results.courses = (data || []).map((c: any) => ({
       id: c.id, code: c.code, title_en: c.title_en, slug: c.slug,
       university: c.universities?.name_en || null,
@@ -75,13 +90,13 @@ export async function GET(req: NextRequest) {
   }
 
   // Course -> professor lookup (when query contains numbers)
-  if ((type === "all" || type === "courses") && /\d/.test(sanitized)) {
+  if ((type === "all" || type === "courses") && /\d/.test(full)) {
     const { data } = await supabase
       .from("professor_courses")
       .select(`courses!inner ( id, code, title_en, slug ),
         professors!inner ( id, name_en, slug, departments ( name_en ),
           aggregates_professor ( avg_quality, review_count ) )`)
-      .ilike("courses.code", `%${sanitized}%`).limit(20);
+      .ilike("courses.code", `%${full}%`).limit(20);
 
     if (data) {
       results.course_professors = data.map((row: any) => ({

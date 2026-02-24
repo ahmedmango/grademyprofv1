@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useGate } from "@/components/ReviewGate";
 import UniClientContent from "./UniClientContent";
 import Link from "next/link";
+import { smartMatch } from "@/lib/smartSearch";
 
 export default function UniGatedWrapper(props: {
   uniId: string; uniName: string; uniShortName: string | null; uniSlug: string; professors: any[];
@@ -26,9 +27,8 @@ export default function UniGatedWrapper(props: {
 
   const filtered = useMemo(() => {
     if (!search.trim()) return props.professors;
-    const q = search.toLowerCase();
     return props.professors.filter((p: any) =>
-      p.name_en.toLowerCase().includes(q) || p.departments?.name_en?.toLowerCase().includes(q)
+      smartMatch(search, p.name_en, p.departments?.name_en)
     );
   }, [search, props.professors]);
 

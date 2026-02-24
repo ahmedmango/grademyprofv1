@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { getTagSentiment, getTagStyles } from "@/lib/tagColors";
 import AppleLogo from "@/components/AppleLogo";
+import { smartMatch } from "@/lib/smartSearch";
 
 function qualityColor(v: number): string {
   if (v >= 4) return "#22C55E";
@@ -39,9 +40,8 @@ export default function UniClientContent({
 
   const filtered = useMemo(() => {
     if (!search.trim()) return professors;
-    const q = search.toLowerCase();
     return professors.filter((p: any) =>
-      p.name_en.toLowerCase().includes(q) || p.departments?.name_en?.toLowerCase().includes(q)
+      smartMatch(search, p.name_en, p.departments?.name_en)
     );
   }, [search, professors]);
 
