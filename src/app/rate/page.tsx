@@ -9,7 +9,8 @@ import { useGate } from "@/components/ReviewGate";
 import { validateUsername, validateEmail, validatePassword } from "@/lib/validation";
 import { VALID_TAGS } from "@/lib/constants";
 
-const GRADES = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "F", "W"];
+const LETTER_GRADES = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "F", "W"];
+const CLASSIFICATION_GRADES = ["Distinction", "Merit", "Pass", "Fail"];
 
 function RateForm() {
   const searchParams = useSearchParams();
@@ -21,10 +22,13 @@ function RateForm() {
   const professorName = searchParams.get("professorName") || "";
   const professorSlug = searchParams.get("professorSlug") || "";
   const uniId = searchParams.get("uniId") || "";
+  const preselectedCourseId = searchParams.get("courseId") || "";
+  const preselectedCourseName = searchParams.get("courseName") || "";
 
   const [courseCode, setCourseCode] = useState("");
   const [courseTitle, setCourseTitle] = useState("");
-  const [step, setStep] = useState(1);
+  const hasCoursePreselected = !!preselectedCourseId;
+  const [step, setStep] = useState(hasCoursePreselected ? 2 : 1);
   const [quality, setQuality] = useState(0);
   const [difficulty, setDifficulty] = useState(0);
   const [wouldTakeAgain, setWouldTakeAgain] = useState<boolean | null>(null);
@@ -44,7 +48,7 @@ function RateForm() {
   const [success, setSuccess] = useState(false);
   const [autoApproved, setAutoApproved] = useState(false);
 
-  const totalSteps = user ? 4 : 5;
+  const totalSteps = (user ? 4 : 5) - (hasCoursePreselected ? 1 : 0);
 
   const toggleTag = (tag: string) => {
     setTags((prev) =>
@@ -102,29 +106,32 @@ function RateForm() {
     try {
       const hash = await getAnonUserHash();
 
-      // Create or find the course via dedicated endpoint
-      const courseRes = await fetch("/api/create-course", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          course_code: courseCode.trim(),
-          course_title: courseTitle.trim() || undefined,
-          professor_id: professorId,
-        }),
-      });
-      const courseData = await courseRes.json();
-      if (!courseRes.ok || !courseData.course_id) {
-        setError(courseData.error || "Could not create course. Please try again.");
-        setSubmitting(false);
-        return;
+      let courseId = preselectedCourseId;
+
+      if (!courseId) {
+        const courseRes = await fetch("/api/create-course", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            course_code: courseCode.trim(),
+            course_title: courseTitle.trim() || undefined,
+            professor_id: professorId,
+          }),
+        });
+        const courseData = await courseRes.json();
+        if (!courseRes.ok || !courseData.course_id) {
+          setError(courseData.error || "Could not create course. Please try again.");
+          setSubmitting(false);
+          return;
+        }
+        courseId = courseData.course_id;
       }
 
-      // Submit the review
       const res = await fetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-anon-user-hash": hash },
         body: JSON.stringify({
-          professor_id: professorId, course_id: courseData.course_id,
+          professor_id: professorId, course_id: courseId,
           rating_quality: quality, rating_difficulty: difficulty,
           would_take_again: wouldTakeAgain, grade_received: grade,
           tags, comment: comment.trim(), user_id: userId,
@@ -190,17 +197,17 @@ function RateForm() {
     <div className="px-5 pb-10 rate-form-container">
       {/* Header */}
       <div className="pt-4 mb-5 flex items-center gap-3">
-        <button onClick={() => step > 1 ? setStep(step - 1) : router.back()}
+        <button onClick={() => step > (hasCoursePreselected ? 2 : 1) ? setStep(step - 1) : router.back()}
           className="w-10 h-10 flex items-center justify-center rounded-xl text-lg transition-all duration-150 active:scale-90" style={{ color: "var(--accent)" }}>←</button>
         <div className="flex-1">
           <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{professorName}</div>
-          {courseCode && <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>{courseCode}</div>}
+          {(courseCode || preselectedCourseName) && <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>{courseCode || preselectedCourseName}</div>}
         </div>
-        <div className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>Step {step}/{totalSteps}</div>
+        <div className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>Step {step - (hasCoursePreselected ? 1 : 0)}/{totalSteps}</div>
       </div>
 
       <div className="h-1 rounded-full mb-6" style={{ background: "var(--border)" }}>
-        <div className="h-1 rounded-full transition-all duration-300" style={{ background: "var(--accent)", width: `${(step / totalSteps) * 100}%` }} />
+        <div className="h-1 rounded-full transition-all duration-300" style={{ background: "var(--accent)", width: `${((step - (hasCoursePreselected ? 1 : 0)) / totalSteps) * 100}%` }} />
       </div>
 
       {error && <div className="mb-4 p-3 rounded-xl text-sm" style={{ background: "#7F1D1D30", color: "var(--rating-low)" }}>{error}</div>}
@@ -261,13 +268,25 @@ function RateForm() {
 
       {/* STEP 3: Grade */}
       {step === 3 && (
-        <div className="animate-fade-up">
-          <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Grade Received *</label>
-          <div className="flex flex-wrap gap-2">
-            {GRADES.map((g) => (
-              <button key={g} onClick={() => setGrade(g)} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                style={grade === g ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>{g}</button>
-            ))}
+        <div className="animate-fade-up space-y-5">
+          <div>
+            <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Letter Grade *</label>
+            <div className="flex flex-wrap gap-2">
+              {LETTER_GRADES.map((g) => (
+                <button key={g} onClick={() => setGrade(g)} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                  style={grade === g ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>{g}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="h-px w-full mb-4" style={{ background: "var(--border)" }} />
+            <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Or Classification Grade</label>
+            <div className="flex flex-wrap gap-2">
+              {CLASSIFICATION_GRADES.map((g) => (
+                <button key={g} onClick={() => setGrade(g)} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                  style={grade === g ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>{g}</button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -373,7 +392,7 @@ function RateForm() {
 
       {/* Navigation */}
       <div className="mt-8 flex gap-3">
-        {step > 1 && (
+        {step > (hasCoursePreselected ? 2 : 1) && (
           <button onClick={() => { setStep(step - 1); setError(""); }} className="flex-1 py-3 rounded-xl text-sm font-semibold card-flat">Back</button>
         )}
         {(user ? step < 4 : step < 5) ? (

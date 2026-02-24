@@ -42,8 +42,8 @@ export default function Header() {
         {user ? (
           <button
             onClick={logout}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-            style={{ background: "var(--bg-surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+            className="text-xs font-semibold underline transition-opacity hover:opacity-80"
+            style={{ color: "var(--accent)" }}
           >
             Log out
           </button>

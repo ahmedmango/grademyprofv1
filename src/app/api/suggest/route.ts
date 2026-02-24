@@ -66,10 +66,10 @@ export async function POST(req: NextRequest) {
       try {
         const paths: string[] = [];
         if (uni) {
-          revalidatePath(`/u/${uni.slug}`, "page");
+          revalidatePath(`/u/${uni.slug}`, "layout");
           paths.push(`/u/${uni.slug}`);
         }
-        revalidatePath("/", "page");
+        revalidatePath("/", "layout");
         paths.push("/");
         console.log("REVALIDATE TRIGGERED [suggest]", paths);
       } catch {}

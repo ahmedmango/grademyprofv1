@@ -22,6 +22,10 @@ const GRADE_MAP: Record<string, GradeClassification> = {
   "F": "Fail",
   "W": null,
   "IP": null,
+  "Distinction": "Distinction",
+  "Merit": "Merit",
+  "Pass": "Pass",
+  "Fail": "Fail",
 };
 
 export function getGradeClassification(grade: string | null | undefined): GradeClassification {

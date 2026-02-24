@@ -70,7 +70,7 @@ export default function UniGatedWrapper(props: {
                     </svg>
                   ) : (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
                   )}
                 </div>
@@ -79,7 +79,7 @@ export default function UniGatedWrapper(props: {
                 <div className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{p.name_en}</div>
                 <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{p.departments?.name_en}</div>
                 <div className="text-[10px] mt-2 font-semibold" style={{ color: "var(--accent)" }}>
-                  {waitingApproval ? "⏳ Pending approval" : "✍️ Tap to rate & unlock →"}
+                  {waitingApproval ? "⏳ Pending approval" : "Tap to rate & unlock →"}
                 </div>
               </div>
             </Link>

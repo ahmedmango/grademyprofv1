@@ -1,6 +1,9 @@
 "use client";
 
+import { useCallback } from "react";
 import RateButton from "@/components/RateButton";
+import ReviewVoteButtons, { useReviewVotes } from "@/components/ReviewVoteButtons";
+import { useUser } from "@/components/UserProvider";
 import Link from "next/link";
 import { getTagSentiment, getTagStyles } from "@/lib/tagColors";
 import { getGradeClassification, getClassificationColor, getClassificationBg } from "@/lib/gradeClassification";
@@ -25,6 +28,7 @@ const GRADE_COLORS: Record<string, string> = {
   "C+": "#EA580C", "C": "#DC2626", "C-": "#DC2626",
   "D+": "#B91C1C", "D": "#B91C1C", "F": "#991B1B",
   "W": "#6B7280", "IP": "#6B7280",
+  "Distinction": "#16A34A", "Merit": "#2563EB", "Pass": "#CA8A04", "Fail": "#DC2626",
 };
 
 const DIST_LABELS = [
@@ -101,6 +105,39 @@ export default function ProfessorClientContent({
   reviews: any[];
 }) {
   const maxDist = Math.max(...DIST_LABELS.map((d) => ratingDist[d.key] || 0), 1);
+  const reviewIds = reviews.map((r: any) => r.id);
+  const { counts, userVotes, setCounts, setUserVotes } = useReviewVotes(reviewIds);
+  const { user } = useUser();
+
+  const handleVote = useCallback(async (reviewId: string, vote: "up" | "down") => {
+    if (!user) return;
+    const prev = userVotes[reviewId];
+    const prevCounts = { ...(counts[reviewId] || { up: 0, down: 0 }) };
+
+    const newUserVotes = { ...userVotes };
+    const newCounts = { ...counts, [reviewId]: { ...prevCounts } };
+    if (prev === vote) {
+      delete newUserVotes[reviewId];
+      newCounts[reviewId][vote]--;
+    } else {
+      if (prev) newCounts[reviewId][prev as "up" | "down"]--;
+      newCounts[reviewId][vote]++;
+      newUserVotes[reviewId] = vote;
+    }
+    setUserVotes(newUserVotes);
+    setCounts(newCounts);
+
+    try {
+      await fetch("/api/review-vote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ review_id: reviewId, vote, user_id: user.id }),
+      });
+    } catch {
+      setUserVotes({ ...userVotes, [reviewId]: prev || "" });
+      setCounts({ ...counts, [reviewId]: prevCounts });
+    }
+  }, [user, userVotes, counts, setCounts, setUserVotes]);
 
   return (
     <>
@@ -287,6 +324,14 @@ export default function ProfessorClientContent({
                     ))}
                   </div>
                 )}
+
+                <ReviewVoteButtons
+                  reviewId={r.id}
+                  upCount={counts[r.id]?.up || 0}
+                  downCount={counts[r.id]?.down || 0}
+                  userVote={userVotes[r.id] || null}
+                  onVote={handleVote}
+                />
               </div>
             );
           })}

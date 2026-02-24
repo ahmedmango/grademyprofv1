@@ -81,7 +81,7 @@ export default function RateButton({
             boxShadow: "0 8px 24px rgba(217,80,48,0.25)",
           }}
         >
-          ✍️ Rate {lastName}
+          Rate {lastName}
         </button>
       </div>
     </>

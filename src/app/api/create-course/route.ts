@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
-// POST: Create or find a course for a professor during rating flow
 export async function POST(req: NextRequest) {
   try {
     const supabase = createServiceClient();
@@ -18,18 +17,17 @@ export async function POST(req: NextRequest) {
     const code = course_code.trim().toUpperCase();
     const title = (course_title || code).trim();
 
-    // Get professor's university
-    const { data: prof } = await supabase
+    const { data: prof, error: profError } = await supabase
       .from("professors")
       .select("university_id")
       .eq("id", professor_id)
       .single();
 
-    if (!prof) {
+    if (profError || !prof) {
+      console.error("Professor lookup failed:", profError);
       return NextResponse.json({ error: "Professor not found" }, { status: 404, headers: NO_STORE_HEADERS });
     }
 
-    // Check if course already exists with this code at this university
     const { data: existing } = await supabase
       .from("courses")
       .select("id")
@@ -42,37 +40,49 @@ export async function POST(req: NextRequest) {
     if (existing) {
       courseId = existing.id;
     } else {
-      // Create the course
-      const slug = code.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      const { data: newCourse, error: insertError } = await supabase
-        .from("courses")
-        .insert({
-          code,
-          title_en: title,
-          slug,
-          university_id: prof.university_id,
-          is_active: true,
-        })
-        .select("id")
-        .single();
+      const baseSlug = code.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      let insertOk = false;
 
-      if (insertError) {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const suffix = Math.random().toString(36).slice(2, 7);
+        const slug = attempt === 0 ? baseSlug : `${baseSlug}-${suffix}`;
+        const { data: newCourse, error: insertError } = await supabase
+          .from("courses")
+          .insert({ code, title_en: title, slug, university_id: prof.university_id, is_active: true })
+          .select("id")
+          .single();
+
+        if (!insertError && newCourse) {
+          courseId = newCourse.id;
+          insertOk = true;
+          break;
+        }
+
+        if (insertError?.code === "23505" && insertError.message?.includes("slug")) {
+          continue;
+        }
+
         console.error("Course creation error:", insertError);
-        return NextResponse.json({ error: "Failed to create course" }, { status: 500, headers: NO_STORE_HEADERS });
+        return NextResponse.json(
+          { error: `Failed to create course: ${insertError?.message || "unknown error"}` },
+          { status: 500, headers: NO_STORE_HEADERS },
+        );
       }
-      courseId = newCourse.id;
+
+      if (!insertOk) {
+        return NextResponse.json(
+          { error: "Failed to create course after retries (slug conflict)" },
+          { status: 500, headers: NO_STORE_HEADERS },
+        );
+      }
     }
 
-    // Link professor to course (ignore if already linked)
     await supabase
       .from("professor_courses")
-      .upsert(
-        { professor_id, course_id: courseId },
-        { onConflict: "professor_id,course_id" }
-      )
+      .upsert({ professor_id, course_id: courseId! }, { onConflict: "professor_id,course_id" })
       .then(() => {});
 
-    return NextResponse.json({ course_id: courseId, code }, { headers: NO_STORE_HEADERS });
+    return NextResponse.json({ course_id: courseId!, code }, { headers: NO_STORE_HEADERS });
   } catch (err) {
     console.error("Course creation error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS });

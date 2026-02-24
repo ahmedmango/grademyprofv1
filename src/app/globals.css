@@ -139,9 +139,9 @@ body {
     gap: 0.75rem;
   }
 
-  /* Rate form centered and contained */
+  /* Rate form — wider on desktop to feel native */
   .rate-form-container {
-    max-width: 32rem;
+    max-width: 42rem;
     margin: 0 auto;
   }
 

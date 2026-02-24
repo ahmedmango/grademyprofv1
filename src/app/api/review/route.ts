@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
       const profSlug = profResult.data.slug;
       const paths: string[] = [];
       if (profSlug) {
-        revalidatePath(`/p/${profSlug}`, "page");
+        revalidatePath(`/p/${profSlug}`, "layout");
         paths.push(`/p/${profSlug}`);
       }
       const { data: uni } = await supabase
@@ -127,10 +127,10 @@ export async function POST(req: NextRequest) {
         .eq("id", profResult.data.university_id)
         .single();
       if (uni) {
-        revalidatePath(`/u/${uni.slug}`, "page");
+        revalidatePath(`/u/${uni.slug}`, "layout");
         paths.push(`/u/${uni.slug}`);
       }
-      revalidatePath("/", "page");
+      revalidatePath("/", "layout");
       paths.push("/");
       console.log("REVALIDATE TRIGGERED [review submission]", paths);
     } catch {}
