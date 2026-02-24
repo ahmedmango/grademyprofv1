@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { fmtRating } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function generateMetadata({ params }: { params: { courseSlug: string } }) {
   const supabase = createServerClient();
   const { data: course } = await supabase.from("courses").select("code, title_en, universities ( name_en )").eq("slug", params.courseSlug).single();

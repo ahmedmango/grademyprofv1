@@ -92,7 +92,6 @@ export async function POST(req: NextRequest) {
           title_en: title,
           slug,
           university_id: university_id || null,
-          is_active: true,
         })
         .select("id")
         .single();

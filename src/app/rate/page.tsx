@@ -48,7 +48,11 @@ function RateForm() {
   const [success, setSuccess] = useState(false);
   const [autoApproved, setAutoApproved] = useState(false);
 
-  const totalSteps = user ? 4 : 5;
+  const stepOffset = hasCoursePreselected ? 1 : 0;
+  const maxStep = user ? 4 : 5;
+  const displayTotal = maxStep - stepOffset;
+  const displayStep = Math.min(step - stepOffset, displayTotal);
+  const displayProgress = displayStep / displayTotal;
 
   const toggleTag = (tag: string) => {
     setTags((prev) =>
@@ -203,11 +207,11 @@ function RateForm() {
           <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{professorName}</div>
           {(courseCode || preselectedCourseName) && <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>{courseCode || preselectedCourseName}</div>}
         </div>
-        <div className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>Step {step}/{totalSteps}</div>
+        <div className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>Step {displayStep}/{displayTotal}</div>
       </div>
 
       <div className="h-1 rounded-full mb-6" style={{ background: "var(--border)" }}>
-        <div className="h-1 rounded-full transition-all duration-300" style={{ background: "var(--accent)", width: `${(step / totalSteps) * 100}%` }} />
+        <div className="h-1 rounded-full transition-all duration-300" style={{ background: "var(--accent)", width: `${displayProgress * 100}%` }} />
       </div>
 
       {error && <div className="mb-4 p-3 rounded-xl text-sm" style={{ background: "#7F1D1D30", color: "var(--rating-low)" }}>{error}</div>}
@@ -395,7 +399,7 @@ function RateForm() {
         {step > (hasCoursePreselected ? 2 : 1) && (
           <button onClick={() => { setStep(step - 1); setError(""); }} className="flex-1 py-3 rounded-xl text-sm font-semibold card-flat">Back</button>
         )}
-        {(user ? step < 4 : step < 5) ? (
+        {step < maxStep ? (
           <button onClick={() => { setStep(step + 1); setError(""); }} disabled={!canAdvance()}
             className="flex-1 py-3 rounded-xl text-sm font-semibold transition disabled:opacity-40"
             style={{ background: "var(--accent)", color: "#fff" }}>Next →</button>
