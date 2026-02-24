@@ -71,6 +71,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <span className="font-bold text-brand-600 text-sm">GMP Admin</span>
           <a href="/admin" className="text-sm text-gray-600 hover:text-brand-500">Dashboard</a>
           <a href="/admin/moderation" className="text-sm text-gray-600 hover:text-brand-500">Moderation</a>
+          <a href="/admin/bulk-import" className="text-sm text-gray-600 hover:text-brand-500">Bulk Import</a>
           <a href="/admin/users" className="text-sm text-gray-600 hover:text-brand-500">Users</a>
           <a href="/admin/entities" className="text-sm text-gray-600 hover:text-brand-500">Manage</a>
         </div>
