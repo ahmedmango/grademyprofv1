@@ -98,8 +98,14 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes loading-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.92); }
+}
+
 .animate-fade-up { animation: fade-up 0.3s ease-out both; }
 .animate-dropdown { animation: dropdown 0.2s ease-out both; }
+.loading-pulse { animation: loading-pulse 1.4s ease-in-out infinite; }
 
 /* ============================================================
    SCROLLBAR
