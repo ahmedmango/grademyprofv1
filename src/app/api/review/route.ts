@@ -109,6 +109,12 @@ export async function POST(req: NextRequest) {
 
     supabase.from("rate_limits").insert({ anon_user_hash: anonUserHash, ip_hash: ipHash }).then();
 
+    // Ensure professor ↔ course link exists for search
+    supabase
+      .from("professor_courses")
+      .upsert({ professor_id, course_id }, { onConflict: "professor_id,course_id" })
+      .then(() => {});
+
     if (status === "live") {
       await supabase.rpc("refresh_professor_aggregates", { p_professor_id: professor_id });
     }

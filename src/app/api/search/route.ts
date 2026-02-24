@@ -89,23 +89,36 @@ export async function GET(req: NextRequest) {
     }));
   }
 
-  // Course -> professor lookup (when query contains numbers)
-  if ((type === "all" || type === "courses") && /\d/.test(full)) {
-    const { data } = await supabase
+  // Course -> professor lookup (match by code or title)
+  if (type === "all" || type === "courses") {
+    let cpQb = supabase
       .from("professor_courses")
       .select(`courses!inner ( id, code, title_en, slug ),
         professors!inner ( id, name_en, slug, departments ( name_en ),
-          aggregates_professor ( avg_quality, review_count ) )`)
-      .ilike("courses.code", `%${full}%`).limit(20);
+          aggregates_professor ( avg_quality, review_count ) )`);
+
+    for (const w of words) {
+      cpQb = cpQb.or(`code.ilike.%${w}%,title_en.ilike.%${w}%`, { referencedTable: "courses" });
+    }
+
+    const { data } = await cpQb.limit(20);
 
     if (data) {
-      results.course_professors = data.map((row: any) => ({
-        course_code: row.courses?.code, course_slug: row.courses?.slug,
-        professor_id: row.professors?.id, professor_name: row.professors?.name_en,
-        professor_slug: row.professors?.slug, department: row.professors?.departments?.name_en,
-        avg_quality: row.professors?.aggregates_professor?.avg_quality ?? null,
-        review_count: row.professors?.aggregates_professor?.review_count ?? 0,
-      }));
+      const seen = new Set<string>();
+      results.course_professors = data
+        .map((row: any) => ({
+          course_code: row.courses?.code, course_slug: row.courses?.slug,
+          professor_id: row.professors?.id, professor_name: row.professors?.name_en,
+          professor_slug: row.professors?.slug, department: row.professors?.departments?.name_en,
+          avg_quality: row.professors?.aggregates_professor?.avg_quality ?? null,
+          review_count: row.professors?.aggregates_professor?.review_count ?? 0,
+        }))
+        .filter((cp: any) => {
+          const key = `${cp.professor_id}-${cp.course_code}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
     }
   }
 
