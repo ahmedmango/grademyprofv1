@@ -96,17 +96,30 @@ export async function POST(req: NextRequest) {
       const { email, password } = body;
 
       if (!email || !password) {
-        return NextResponse.json({ error: "Email and password are required" }, { status: 400, headers: NO_STORE_HEADERS });
+        return NextResponse.json({ error: "Username/email and password are required" }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
-      // Verify credentials using crypt comparison
+      let loginEmail = email.trim().toLowerCase();
+
+      if (!loginEmail.includes("@")) {
+        const { data: userByName } = await supabase
+          .from("user_accounts")
+          .select("email")
+          .eq("username", loginEmail)
+          .maybeSingle();
+        if (!userByName) {
+          return NextResponse.json({ error: "Invalid username or password" }, { status: 401, headers: NO_STORE_HEADERS });
+        }
+        loginEmail = userByName.email;
+      }
+
       const { data: user, error } = await supabase.rpc("verify_user_login", {
-        p_email: email.trim().toLowerCase(),
+        p_email: loginEmail,
         p_password: password,
       });
 
       if (error || !user || user.length === 0) {
-        return NextResponse.json({ error: "Invalid email or password" }, { status: 401, headers: NO_STORE_HEADERS });
+        return NextResponse.json({ error: "Invalid credentials" }, { status: 401, headers: NO_STORE_HEADERS });
       }
 
       const userData = user[0] || user;

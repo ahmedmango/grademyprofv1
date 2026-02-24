@@ -133,13 +133,13 @@ export default function AuthPage() {
 
         <div>
           <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>
-            Email *
+            {mode === "login" ? "Username or Email *" : "Email *"}
           </label>
           <input
-            type="email"
+            type={mode === "login" ? "text" : "email"}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="your@email.com"
+            placeholder={mode === "login" ? "Username or email" : "your@email.com"}
             className="w-full px-3.5 py-3 rounded-xl text-sm outline-none transition-all"
             style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
           />

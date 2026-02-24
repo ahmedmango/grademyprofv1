@@ -302,9 +302,8 @@ export default function ProfessorClientContent({
                         </span>
                       )}
                       {r.grade_received && (
-                        <span className="text-[10px] flex items-center" style={{ color: "var(--text-tertiary)" }}>
+                        <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
                           Grade: <strong className="ml-0.5" style={{ color: GRADE_COLORS[r.grade_received] || "var(--text-primary)" }}>{r.grade_received}</strong>
-                          <GradeClassificationBadge grade={r.grade_received} />
                         </span>
                       )}
                     </div>

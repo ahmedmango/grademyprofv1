@@ -13,9 +13,11 @@ type Review = {
   toxicity_score: number;
   risk_flags: Record<string, boolean>;
   created_at: string;
+  user_id: string | null;
   professors: { id: string; name_en: string; slug: string } | null;
   courses: { id: string; code: string; title_en: string } | null;
   universities: { id: string; name_en: string; slug: string } | null;
+  user_accounts: { id: string; username: string; email: string } | null;
 };
 
 export default function ModerationPage() {
@@ -220,10 +222,24 @@ function ReviewModCard({
                 {review.courses?.code || "—"}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
+            <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap">
               <span>{review.universities?.name_en}</span>
               <span>·</span>
               <span>{new Date(review.created_at).toLocaleDateString()}</span>
+              {review.user_accounts && (
+                <>
+                  <span>·</span>
+                  <span className="text-blue-500 font-medium" title={review.user_accounts.email}>
+                    @{review.user_accounts.username}
+                  </span>
+                </>
+              )}
+              {!review.user_accounts && review.user_id && (
+                <>
+                  <span>·</span>
+                  <span className="text-gray-300">anon</span>
+                </>
+              )}
             </div>
           </div>
 

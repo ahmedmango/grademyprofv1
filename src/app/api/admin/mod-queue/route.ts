@@ -20,10 +20,11 @@ export async function GET(req: NextRequest) {
     .select(`
       id, rating_quality, rating_difficulty, would_take_again,
       attendance_mandatory, uses_textbook, tags, comment, status,
-      toxicity_score, risk_flags, created_at, semester_window,
+      toxicity_score, risk_flags, created_at, semester_window, user_id,
       professors ( id, name_en, slug ),
       courses ( id, code, title_en ),
-      universities ( id, name_en, slug )
+      universities ( id, name_en, slug ),
+      user_accounts ( id, username, email )
     `, { count: "exact" })
     .eq("status", status)
     .order("created_at", { ascending: false })
