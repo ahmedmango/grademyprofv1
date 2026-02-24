@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/components/UserProvider";
 import { getAnonUserHash } from "@/lib/anon-identity";
 import Link from "next/link";
 import AppleLogo from "@/components/AppleLogo";
+import { PasswordStrengthBar, PasswordMatchIndicator } from "@/components/PasswordStrength";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -18,6 +19,23 @@ export default function AuthPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [usernameTaken, setUsernameTaken] = useState<boolean | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const usernameTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    if (username.length < 3) { setUsernameTaken(null); return; }
+    setCheckingUsername(true);
+    clearTimeout(usernameTimer.current);
+    usernameTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/check-username?u=${encodeURIComponent(username.trim())}`);
+        if (res.ok) { const d = await res.json(); setUsernameTaken(!d.available); }
+      } catch {}
+      setCheckingUsername(false);
+    }, 400);
+    return () => clearTimeout(usernameTimer.current);
+  }, [username]);
 
   const handleSubmit = async () => {
     setError("");
@@ -125,9 +143,24 @@ export default function AuthPage() {
               className="w-full px-3.5 py-3 rounded-xl text-sm outline-none transition-all"
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
             />
-            <p className="text-[10px] mt-1" style={{ color: "var(--text-tertiary)" }}>
-              3-20 characters. Letters, numbers, underscore, dot only.
-            </p>
+            <div className="flex items-center gap-1 mt-1">
+              {checkingUsername && username.length >= 3 && (
+                <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>Checking...</span>
+              )}
+              {!checkingUsername && usernameTaken === false && username.length >= 3 && (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span className="text-[10px] font-semibold" style={{ color: "#22C55E" }}>Available</span>
+                </>
+              )}
+              {!checkingUsername && usernameTaken === true && (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <span className="text-[10px] font-semibold" style={{ color: "#EF4444" }}>Username taken</span>
+                </>
+              )}
+              {username.length < 3 && <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>3-20 characters. Letters, numbers, underscore, dot only.</span>}
+            </div>
           </div>
         )}
 
@@ -157,6 +190,7 @@ export default function AuthPage() {
             className="w-full px-3.5 py-3 rounded-xl text-sm outline-none transition-all"
             style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
           />
+          {mode === "register" && <PasswordStrengthBar password={password} />}
         </div>
 
         {mode === "register" && (
@@ -173,6 +207,7 @@ export default function AuthPage() {
                 className="w-full px-3.5 py-3 rounded-xl text-sm outline-none transition-all"
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
               />
+              <PasswordMatchIndicator password={password} confirm={confirmPassword} />
             </div>
 
             {/* Terms & Conditions */}
