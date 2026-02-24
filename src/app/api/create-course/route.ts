@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
         const slug = attempt === 0 ? baseSlug : `${baseSlug}-${suffix}`;
         const { data: newCourse, error: insertError } = await supabase
           .from("courses")
-          .insert({ code, title_en: title, slug, university_id: prof.university_id, is_active: true })
+          .insert({ code, title_en: title, slug, university_id: prof.university_id })
           .select("id")
           .single();
 
