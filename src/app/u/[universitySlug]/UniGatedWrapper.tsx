@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { useGate } from "@/components/ReviewGate";
 import UniClientContent from "./UniClientContent";
 import Link from "next/link";
@@ -8,6 +9,7 @@ export default function UniGatedWrapper(props: {
   uniId: string; uniName: string; uniShortName: string | null; uniSlug: string; professors: any[];
 }) {
   const { isUnlocked, loading, reviewCount, approvedCount } = useGate();
+  const [search, setSearch] = useState("");
 
   if (loading) {
     return (
@@ -21,6 +23,14 @@ export default function UniGatedWrapper(props: {
 
   const hasSubmitted = reviewCount > 0;
   const waitingApproval = hasSubmitted && approvedCount < 1;
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return props.professors;
+    const q = search.toLowerCase();
+    return props.professors.filter((p: any) =>
+      p.name_en.toLowerCase().includes(q) || p.departments?.name_en?.toLowerCase().includes(q)
+    );
+  }, [search, props.professors]);
 
   return (
     <>
@@ -54,9 +64,28 @@ export default function UniGatedWrapper(props: {
         </div>
       </div>
 
+      {/* Search bar */}
+      <div className="relative mb-4">
+        <svg className="absolute left-3.5 top-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input value={search} onChange={(e) => setSearch(e.target.value)}
+          placeholder={`Search professors at ${props.uniShortName || props.uniName}...`}
+          className="w-full pl-10 pr-4 py-3 rounded-xl text-xs outline-none transition-all"
+          style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+      </div>
+
+      <div className="mb-3 flex items-center justify-between">
+        <div className="section-label">{search.trim() ? `${filtered.length} results` : "Professors"}</div>
+        <Link href={`/suggest?type=professor&university=${props.uniId}&universityName=${encodeURIComponent(props.uniName)}`}
+          className="text-[10px] font-semibold transition-all active:scale-95" style={{ color: "var(--accent)" }}>
+          + Add professor
+        </Link>
+      </div>
+
       {/* Professor list — tap goes directly to /rate */}
       <div className="space-y-3">
-        {props.professors.map((p: any) => {
+        {filtered.map((p: any) => {
           const rateUrl = `/rate?professorId=${p.id}&professorName=${encodeURIComponent(p.name_en)}&professorSlug=${p.slug}&uniId=${props.uniId}`;
           return (
             <Link key={p.id} href={waitingApproval ? `/p/${p.slug}` : rateUrl}
@@ -86,7 +115,19 @@ export default function UniGatedWrapper(props: {
           );
         })}
 
-        {props.professors.length === 0 && (
+        {filtered.length === 0 && search.trim() && (
+          <div className="text-center py-8" style={{ color: "var(--text-tertiary)" }}>
+            <p className="text-sm mb-1">No professors match &ldquo;{search}&rdquo;</p>
+            <p className="text-[11px] mb-3" style={{ color: "var(--text-tertiary)" }}>Can&apos;t find who you&apos;re looking for?</p>
+            <Link href={`/suggest?type=professor&university=${props.uniId}&universityName=${encodeURIComponent(props.uniName)}`}
+              className="inline-block px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.97]"
+              style={{ background: "var(--accent)", color: "#fff" }}>
+              + Add this professor
+            </Link>
+          </div>
+        )}
+
+        {filtered.length === 0 && !search.trim() && (
           <div className="text-center py-10" style={{ color: "var(--text-tertiary)" }}>
             <div className="text-3xl mb-2">🎓</div>
             <p className="text-sm mb-3">No professors added yet</p>
