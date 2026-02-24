@@ -60,6 +60,8 @@ export default function UniClientContent({
     );
   }, [search, professors]);
 
+  const hasProfessors = professors.length > 0;
+
   return (
     <>
       {/* Search within this uni */}
@@ -76,16 +78,18 @@ export default function UniClientContent({
         />
       </div>
 
-      {/* Header */}
+      {/* Header — only show "+ Add professor" link when there ARE professors */}
       <div className="mb-3 flex items-center justify-between">
         <div className="section-label">
           {search.trim() ? `${filtered.length} results` : "Professors"}
         </div>
-        <Link href={`/suggest?type=professor&university=${uniId}&universityName=${encodeURIComponent(uniName)}`}
-          className="text-[10px] font-semibold transition-all active:scale-95"
-          style={{ color: "var(--accent)" }}>
-          + Add professor
-        </Link>
+        {hasProfessors && (
+          <Link href={`/suggest?type=professor&university=${uniId}&universityName=${encodeURIComponent(uniName)}`}
+            className="text-[10px] font-semibold transition-all active:scale-95"
+            style={{ color: "var(--accent)" }}>
+            + Add professor
+          </Link>
+        )}
       </div>
 
       {/* Professor cards */}
@@ -103,43 +107,28 @@ export default function UniClientContent({
               className="flex gap-3.5 p-3 rounded-xl transition-all duration-200 active:scale-[0.98]"
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
 
-              {/* Left — quality box or apple icon */}
               <div className="shrink-0 flex flex-col items-center">
                 {count > 0 ? (
                   <>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>
-                      Quality
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>Quality</div>
+                    <div className="w-[56px] h-[56px] rounded-lg flex items-center justify-center" style={{ background: qualityBg(avgQ) }}>
+                      <span className="text-[22px] font-extrabold font-display" style={{ color: qualityColor(avgQ) }}>{avgQ.toFixed(1)}</span>
                     </div>
-                    <div
-                      className="w-[56px] h-[56px] rounded-lg flex items-center justify-center"
-                      style={{ background: qualityBg(avgQ) }}
-                    >
-                      <span className="text-[22px] font-extrabold font-display" style={{ color: qualityColor(avgQ) }}>
-                        {avgQ.toFixed(1)}
-                      </span>
-                    </div>
-                    <div className="text-[10px] mt-1" style={{ color: "var(--text-tertiary)" }}>
-                      {count} {count === 1 ? "rating" : "ratings"}
-                    </div>
+                    <div className="text-[10px] mt-1" style={{ color: "var(--text-tertiary)" }}>{count} {count === 1 ? "rating" : "ratings"}</div>
                   </>
                 ) : (
                   <>
                     <div className="w-[56px] h-[56px] rounded-full flex items-center justify-center" style={{ border: "2px solid var(--accent)", background: "var(--accent-soft, rgba(217,80,48,0.08))" }}>
                       <AppleLogo size={24} color="var(--accent)" />
                     </div>
-                    <div className="text-[8px] mt-1 text-center leading-tight font-medium" style={{ color: "var(--text-tertiary)" }}>
-                      No ratings
-                    </div>
+                    <div className="text-[8px] mt-1 text-center leading-tight font-medium" style={{ color: "var(--text-tertiary)" }}>No ratings</div>
                   </>
                 )}
               </div>
 
-              {/* Right — name, dept, stats */}
               <div className="flex-1 min-w-0 py-0.5">
                 <div className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{p.name_en}</div>
-                <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-                  {p.departments?.name_en}
-                </div>
+                <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{p.departments?.name_en}</div>
                 {count > 0 && (
                   <div className="flex items-center gap-1 mt-2 flex-wrap">
                     <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{Math.round(retake)}%</span>
@@ -151,9 +140,7 @@ export default function UniClientContent({
                 )}
                 {topTags.length > 0 && (
                   <div className="flex gap-1.5 mt-2 flex-wrap">
-                    {topTags.slice(0, 3).map((tag: string) => (
-                      <TagPill key={tag} tag={tag} />
-                    ))}
+                    {topTags.slice(0, 3).map((tag: string) => (<TagPill key={tag} tag={tag} />))}
                   </div>
                 )}
               </div>

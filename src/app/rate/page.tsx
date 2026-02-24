@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getAnonUserHash } from "@/lib/anon-identity";
@@ -22,13 +22,8 @@ function RateForm() {
   const professorSlug = searchParams.get("professorSlug") || "";
   const uniId = searchParams.get("uniId") || "";
 
-  // Course state
   const [courseCode, setCourseCode] = useState("");
   const [courseTitle, setCourseTitle] = useState("");
-  const [existingCourses, setExistingCourses] = useState<any[]>([]);
-  const [selectedCourseId, setSelectedCourseId] = useState("");
-
-  // Rating state
   const [step, setStep] = useState(1);
   const [quality, setQuality] = useState(0);
   const [difficulty, setDifficulty] = useState(0);
@@ -37,7 +32,6 @@ function RateForm() {
   const [tags, setTags] = useState<string[]>([]);
   const [comment, setComment] = useState("");
 
-  // Auth state
   const [authMode, setAuthMode] = useState<"register" | "login">("register");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -45,23 +39,10 @@ function RateForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  // Submission
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [autoApproved, setAutoApproved] = useState(false);
-
-  // Fetch existing courses for this professor's university
-  useEffect(() => {
-    if (uniId) {
-      fetch(`/api/search?q=&type=courses`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.courses) setExistingCourses(data.courses);
-        })
-        .catch(() => {});
-    }
-  }, [uniId]);
 
   const totalSteps = user ? 4 : 5;
 
@@ -92,7 +73,7 @@ function RateForm() {
     let userId = user?.id;
 
     // Auth step if not logged in
-    if (!user && step === 5) {
+    if (!user) {
       if (authMode === "register") {
         const uCheck = validateUsername(username);
         if (!uCheck.valid) { setError(uCheck.error!); setSubmitting(false); return; }
@@ -121,49 +102,29 @@ function RateForm() {
     try {
       const hash = await getAnonUserHash();
 
-      // First, create or find the course
-      let courseId = selectedCourseId;
-      if (!courseId) {
-        const courseRes = await fetch("/api/suggest", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "course",
-            name_en: courseTitle.trim() || courseCode.trim(),
-            university_id: uniId,
-            extra: courseCode.trim().toUpperCase(),
-          }),
-        });
-        if (courseRes.ok) {
-          // Find the course we just created
-          const searchRes = await fetch(`/api/search?q=${encodeURIComponent(courseCode.trim())}&type=courses`);
-          const searchData = await searchRes.json();
-          const found = searchData.courses?.find((c: any) =>
-            c.code.toUpperCase() === courseCode.trim().toUpperCase()
-          );
-          if (found) courseId = found.id;
-        }
-      }
-
-      if (!courseId) {
-        setError("Could not create course. Please try again.");
+      // Create or find the course via dedicated endpoint
+      const courseRes = await fetch("/api/create-course", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          course_code: courseCode.trim(),
+          course_title: courseTitle.trim() || undefined,
+          professor_id: professorId,
+        }),
+      });
+      const courseData = await courseRes.json();
+      if (!courseRes.ok || !courseData.course_id) {
+        setError(courseData.error || "Could not create course. Please try again.");
         setSubmitting(false);
         return;
       }
-
-      // Link professor to course
-      await fetch("/api/suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "link_professor_course", professor_id: professorId, course_id: courseId }),
-      }).catch(() => {});
 
       // Submit the review
       const res = await fetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-anon-user-hash": hash },
         body: JSON.stringify({
-          professor_id: professorId, course_id: courseId,
+          professor_id: professorId, course_id: courseData.course_id,
           rating_quality: quality, rating_difficulty: difficulty,
           would_take_again: wouldTakeAgain, grade_received: grade,
           tags, comment: comment.trim(), user_id: userId,
@@ -171,11 +132,7 @@ function RateForm() {
       });
       const data = await res.json();
       if (res.ok) {
-        // Clear gate cache and refresh — this unlocks ratings
-        try {
-          localStorage.removeItem("gmp_gate_status");
-          localStorage.removeItem("gmp_review_count");
-        } catch {}
+        try { localStorage.removeItem("gmp_gate_status"); localStorage.removeItem("gmp_review_count"); } catch {}
         await refreshGate();
         setAutoApproved(data.auto_approved || false);
         setSuccess(true);
@@ -188,26 +145,20 @@ function RateForm() {
     setSubmitting(false);
   };
 
-  // No professor selected
   if (!professorId) {
     return (
-      <div className="px-5 pb-10 pt-8 text-center max-w-md mx-auto">
+      <div className="px-5 pb-10 pt-8 text-center rate-form-container">
         <div className="text-4xl mb-3">✍️</div>
         <h1 className="font-display text-xl font-bold mb-2" style={{ color: "var(--accent)" }}>Rate a Professor</h1>
-        <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
-          Find a professor first, then tap "Rate" on their profile page.
-        </p>
-        <Link href="/" className="inline-block px-6 py-3 rounded-xl text-sm font-semibold" style={{ background: "var(--accent)", color: "#fff" }}>
-          ← Back to Home
-        </Link>
+        <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>Find a professor first, then tap "Rate" on their profile page.</p>
+        <Link href="/" className="inline-block px-6 py-3 rounded-xl text-sm font-semibold" style={{ background: "var(--accent)", color: "#fff" }}>← Back to Home</Link>
       </div>
     );
   }
 
-  // Success
   if (success) {
     return (
-      <div className="px-5 pb-10 pt-12 text-center max-w-md mx-auto animate-fade-up">
+      <div className="px-5 pb-10 pt-12 text-center rate-form-container animate-fade-up">
         <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: "#22C55E20" }}>
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12"/>
@@ -219,21 +170,14 @@ function RateForm() {
         <p className="text-sm mb-2" style={{ color: "var(--text-secondary)" }}>
           {autoApproved
             ? "Your review is live. Thank you for helping fellow students!"
-            : "Your review is pending moderation. Most reviews are approved within 24 hours."
-          }
+            : "Your review is pending moderation. Most reviews are approved within 24 hours."}
         </p>
-        <p className="text-xs mb-6" style={{ color: "var(--accent)" }}>
-          ✨ All ratings are now unlocked for you!
-        </p>
+        <p className="text-xs mb-6 font-semibold" style={{ color: "var(--accent)" }}>All ratings are now unlocked for you!</p>
         <div className="flex gap-3 justify-center flex-wrap">
           {professorSlug ? (
-            <Link href={`/p/${professorSlug}`} className="px-5 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "var(--accent)", color: "#fff" }}>
-              View Professor →
-            </Link>
+            <Link href={`/p/${professorSlug}`} className="px-5 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "var(--accent)", color: "#fff" }}>View Professor →</Link>
           ) : (
-            <Link href="/" className="px-5 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "var(--accent)", color: "#fff" }}>
-              Browse Professors →
-            </Link>
+            <Link href="/" className="px-5 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "var(--accent)", color: "#fff" }}>Browse Professors →</Link>
           )}
         </div>
       </div>
@@ -243,7 +187,7 @@ function RateForm() {
   const ratingLabel = (v: number) => v <= 1 ? "Awful" : v <= 2 ? "Poor" : v <= 3 ? "OK" : v <= 4 ? "Good" : "Amazing";
 
   return (
-    <div className="px-5 pb-10 max-w-lg mx-auto">
+    <div className="px-5 pb-10 rate-form-container">
       {/* Header */}
       <div className="pt-4 mb-5 flex items-center gap-3">
         <button onClick={() => step > 1 ? setStep(step - 1) : router.back()}
@@ -255,48 +199,29 @@ function RateForm() {
         <div className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>Step {step}/{totalSteps}</div>
       </div>
 
-      {/* Progress */}
       <div className="h-1 rounded-full mb-6" style={{ background: "var(--border)" }}>
         <div className="h-1 rounded-full transition-all duration-300" style={{ background: "var(--accent)", width: `${(step / totalSteps) * 100}%` }} />
       </div>
 
-      {error && (
-        <div className="mb-4 p-3 rounded-xl text-sm" style={{ background: "#7F1D1D30", color: "var(--rating-low)" }}>{error}</div>
-      )}
+      {error && <div className="mb-4 p-3 rounded-xl text-sm" style={{ background: "#7F1D1D30", color: "var(--rating-low)" }}>{error}</div>}
 
       {/* STEP 1: Course */}
       {step === 1 && (
         <div className="space-y-4 animate-fade-up">
           <div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
-              Which course did you take with {professorName}?
-            </label>
-            <p className="text-[10px] mb-3" style={{ color: "var(--text-tertiary)" }}>
-              Enter the course code (e.g. CS101, ACCT200, ENG102)
-            </p>
-            <input
-              value={courseCode}
-              onChange={(e) => {
-                setCourseCode(e.target.value.toUpperCase());
-                setSelectedCourseId("");
-              }}
-              placeholder="Course code (e.g. CS101)"
-              maxLength={20}
+            <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>Which course did you take with {professorName}?</label>
+            <p className="text-[10px] mb-3" style={{ color: "var(--text-tertiary)" }}>Enter the course code (e.g. CS101, ACCT200, ENG102)</p>
+            <input value={courseCode} onChange={(e) => setCourseCode(e.target.value.toUpperCase())}
+              placeholder="Course code (e.g. CS101)" maxLength={20}
               className="w-full px-3.5 py-3 rounded-xl text-sm outline-none font-mono"
-              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-            />
+              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
-              Course name (optional)
-            </label>
-            <input
-              value={courseTitle}
-              onChange={(e) => setCourseTitle(e.target.value)}
+            <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>Course name (optional)</label>
+            <input value={courseTitle} onChange={(e) => setCourseTitle(e.target.value)}
               placeholder="e.g. Introduction to Computer Science"
               className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
-              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-            />
+              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
           </div>
         </div>
       )}
@@ -305,30 +230,20 @@ function RateForm() {
       {step === 2 && (
         <div className="space-y-6 animate-fade-up">
           <div>
-            <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>
-              Quality Rating * {quality > 0 && <span style={{ color: "var(--accent)" }}>— {ratingLabel(quality)}</span>}
-            </label>
+            <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Quality Rating * {quality > 0 && <span style={{ color: "var(--accent)" }}>— {ratingLabel(quality)}</span>}</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((v) => (
-                <button key={v} onClick={() => setQuality(v)}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold transition-all"
-                  style={quality === v ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-                  {v}
-                </button>
+                <button key={v} onClick={() => setQuality(v)} className="flex-1 py-3 rounded-xl text-sm font-bold transition-all"
+                  style={quality === v ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>{v}</button>
               ))}
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>
-              Difficulty Rating * {difficulty > 0 && <span style={{ color: "var(--accent)" }}>— {ratingLabel(difficulty)}</span>}
-            </label>
+            <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Difficulty Rating * {difficulty > 0 && <span style={{ color: "var(--accent)" }}>— {ratingLabel(difficulty)}</span>}</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((v) => (
-                <button key={v} onClick={() => setDifficulty(v)}
-                  className="flex-1 py-3 rounded-xl text-sm font-bold transition-all"
-                  style={difficulty === v ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-                  {v}
-                </button>
+                <button key={v} onClick={() => setDifficulty(v)} className="flex-1 py-3 rounded-xl text-sm font-bold transition-all"
+                  style={difficulty === v ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>{v}</button>
               ))}
             </div>
           </div>
@@ -336,11 +251,8 @@ function RateForm() {
             <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Would you take this professor again?</label>
             <div className="flex gap-2">
               {[true, false].map((v) => (
-                <button key={String(v)} onClick={() => setWouldTakeAgain(v)}
-                  className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
-                  style={wouldTakeAgain === v ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-                  {v ? "👍 Yes" : "👎 No"}
-                </button>
+                <button key={String(v)} onClick={() => setWouldTakeAgain(v)} className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+                  style={wouldTakeAgain === v ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>{v ? "👍 Yes" : "👎 No"}</button>
               ))}
             </div>
           </div>
@@ -353,11 +265,8 @@ function RateForm() {
           <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Grade Received *</label>
           <div className="flex flex-wrap gap-2">
             {GRADES.map((g) => (
-              <button key={g} onClick={() => setGrade(g)}
-                className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                style={grade === g ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-                {g}
-              </button>
+              <button key={g} onClick={() => setGrade(g)} className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                style={grade === g ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>{g}</button>
             ))}
           </div>
         </div>
@@ -368,32 +277,23 @@ function RateForm() {
         <div className="space-y-6 animate-fade-up">
           <div className="p-3 rounded-xl flex items-start gap-2" style={{ background: "var(--accent-soft)", border: "1px solid var(--border)" }}>
             <span className="text-sm">💡</span>
-            <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-              <strong>Tip:</strong> Reviews with 30+ character comments get approved instantly.
-            </p>
+            <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-secondary)" }}><strong>Tip:</strong> Reviews with 30+ character comments get approved instantly.</p>
           </div>
           <div>
             <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Tags (pick up to 3)</label>
             <div className="flex flex-wrap gap-2">
               {VALID_TAGS.map((tag) => (
-                <button key={tag} onClick={() => toggleTag(tag)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                  style={tags.includes(tag) ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-                  {tag}
-                </button>
+                <button key={tag} onClick={() => toggleTag(tag)} className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                  style={tags.includes(tag) ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>{tag}</button>
               ))}
             </div>
           </div>
           <div>
             <label className="block text-xs font-semibold mb-2" style={{ color: "var(--text-secondary)" }}>Review (optional)</label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="What should other students know about this professor?"
-              rows={4} maxLength={1000}
+            <textarea value={comment} onChange={(e) => setComment(e.target.value)}
+              placeholder="What should other students know about this professor?" rows={4} maxLength={1000}
               className="w-full p-3.5 rounded-xl text-sm resize-none outline-none"
-              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-            />
+              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
             <div className="flex justify-between mt-1">
               <span className="text-[10px]" style={{ color: comment.length >= 30 ? "var(--rating-high)" : "var(--text-tertiary)" }}>
                 {comment.length >= 30 ? "✓ Eligible for instant approval" : `${30 - comment.length} more chars for instant approval`}
@@ -404,43 +304,32 @@ function RateForm() {
         </div>
       )}
 
-      {/* STEP 5: Create account (only if not logged in) */}
+      {/* STEP 5: Auth (only if not logged in) */}
       {step === 5 && !user && (
         <div className="space-y-4 animate-fade-up">
           <div className="text-center mb-2">
             <h3 className="font-display font-bold text-base" style={{ color: "var(--text-primary)" }}>Save your feedback</h3>
-            <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>
-              Create an account to submit. Your review stays <strong style={{ color: "var(--accent)" }}>100% anonymous</strong>.
-            </p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-tertiary)" }}>Create an account to submit. Your review stays <strong style={{ color: "var(--accent)" }}>100% anonymous</strong>.</p>
           </div>
 
           <div className="p-3 rounded-xl flex items-start gap-2" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-            </svg>
-            <p className="text-[10px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>
-              Your username and email are <strong>never</strong> shown with your reviews.
-            </p>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <p className="text-[10px] leading-relaxed" style={{ color: "var(--text-tertiary)" }}>Your username and email are <strong>never</strong> shown with your reviews.</p>
           </div>
 
           <div className="flex gap-1 p-1 rounded-xl" style={{ background: "var(--bg-surface-alt)" }}>
             <button onClick={() => { setAuthMode("register"); setError(""); }}
               className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
-              style={authMode === "register" ? { background: "var(--accent)", color: "#fff" } : { color: "var(--text-secondary)" }}>
-              New Account
-            </button>
+              style={authMode === "register" ? { background: "var(--accent)", color: "#fff" } : { color: "var(--text-secondary)" }}>New Account</button>
             <button onClick={() => { setAuthMode("login"); setError(""); }}
               className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
-              style={authMode === "login" ? { background: "var(--accent)", color: "#fff" } : { color: "var(--text-secondary)" }}>
-              I have an account
-            </button>
+              style={authMode === "login" ? { background: "var(--accent)", color: "#fff" } : { color: "var(--text-secondary)" }}>I have an account</button>
           </div>
 
           {authMode === "register" && (
             <div>
               <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Username *</label>
-              <input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))}
-                placeholder="e.g. student_uob" maxLength={20}
+              <input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="e.g. student_uob" maxLength={20}
                 className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               <p className="text-[10px] mt-1" style={{ color: "var(--text-tertiary)" }}>3-20 characters. Never shown publicly.</p>
@@ -475,9 +364,7 @@ function RateForm() {
                   style={{ borderColor: acceptedTerms ? "var(--accent)" : "var(--border)", background: acceptedTerms ? "var(--accent)" : "transparent" }}>
                   {acceptedTerms && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
                 </button>
-                <p className="text-[10px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                  I agree to the <Link href="/terms" className="underline" style={{ color: "var(--accent)" }}>Terms</Link> and <Link href="/privacy" className="underline" style={{ color: "var(--accent)" }}>Privacy Policy</Link>.
-                </p>
+                <p className="text-[10px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>I agree to the <Link href="/terms" className="underline" style={{ color: "var(--accent)" }}>Terms</Link> and <Link href="/privacy" className="underline" style={{ color: "var(--accent)" }}>Privacy Policy</Link>.</p>
               </div>
             </>
           )}
@@ -487,31 +374,28 @@ function RateForm() {
       {/* Navigation */}
       <div className="mt-8 flex gap-3">
         {step > 1 && (
-          <button onClick={() => { setStep(step - 1); setError(""); }}
-            className="flex-1 py-3 rounded-xl text-sm font-semibold card-flat">Back</button>
+          <button onClick={() => { setStep(step - 1); setError(""); }} className="flex-1 py-3 rounded-xl text-sm font-semibold card-flat">Back</button>
         )}
         {(user ? step < 4 : step < 5) ? (
           <button onClick={() => { setStep(step + 1); setError(""); }} disabled={!canAdvance()}
             className="flex-1 py-3 rounded-xl text-sm font-semibold transition disabled:opacity-40"
-            style={{ background: "var(--accent)", color: "#fff" }}>
-            Next →
-          </button>
+            style={{ background: "var(--accent)", color: "#fff" }}>Next →</button>
         ) : (
           <button onClick={handleSubmit} disabled={submitting || !canAdvance()}
-            className="flex-1 py-3 rounded-xl text-sm font-semibold transition disabled:opacity-40 flex items-center justify-center gap-2"
+            className="flex-1 py-3 rounded-xl text-sm font-semibold transition disabled:opacity-40"
             style={{ background: "var(--accent)", color: "#fff" }}>
             {submitting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span className="flex items-center justify-center gap-2">
+                <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Submitting…
-              </>
+              </span>
             ) : "Submit Review ✓"}
           </button>
         )}
       </div>
 
       <div className="mt-6 text-center">
-        <p className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>🛡️ Your review is 100% anonymous.</p>
+        <p className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>Your review is 100% anonymous.</p>
       </div>
     </div>
   );
@@ -519,11 +403,7 @@ function RateForm() {
 
 export default function RatePage() {
   return (
-    <Suspense fallback={
-      <div className="px-5 py-12 text-center">
-        <div className="w-6 h-6 border-2 rounded-full animate-spin mx-auto" style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} />
-      </div>
-    }>
+    <Suspense fallback={<div className="px-5 py-12 text-center"><div className="w-6 h-6 border-2 rounded-full animate-spin mx-auto" style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} /></div>}>
       <RateForm />
     </Suspense>
   );
