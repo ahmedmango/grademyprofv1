@@ -1,71 +1,142 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { slugify } from "@/lib/utils";
+import { revalidatePath } from "next/cache";
+
+function slugify(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/['']/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = createServiceClient();
     const body = await req.json();
     const { type, name_en, name_ar, university_id, extra } = body;
 
     if (!type || !name_en || name_en.trim().length < 2) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+      return NextResponse.json({ error: "Name is required (min 2 characters)" }, { status: 400 });
     }
 
-    const supabase = createServiceClient();
-    const slug = slugify(name_en);
-
-    switch (type) {
-      case "university": {
-        const { data: existing } = await supabase.from("universities").select("id").eq("slug", slug).maybeSingle();
-        if (existing) return NextResponse.json({ error: "This university may already exist" }, { status: 409 });
-
-        const { error } = await supabase.from("universities").insert({
-          name_en: name_en.trim(),
-          name_ar: name_ar?.trim() || null,
-          country_code: "BH",
-          slug,
-          is_active: false,
-        });
-        if (error) return NextResponse.json({ error: "Failed to save" }, { status: 500 });
-        break;
+    if (type === "professor") {
+      if (!university_id) {
+        return NextResponse.json({ error: "University is required" }, { status: 400 });
       }
 
-      case "professor": {
-        if (!university_id) return NextResponse.json({ error: "University is required" }, { status: 400 });
-        const { data: existing } = await supabase.from("professors").select("id").eq("slug", slug).maybeSingle();
-        if (existing) return NextResponse.json({ error: "This professor may already exist" }, { status: 409 });
+      const slug = slugify(name_en.trim());
 
-        const { error } = await supabase.from("professors").insert({
+      // Check for duplicate
+      const { data: existing } = await supabase
+        .from("professors")
+        .select("id")
+        .eq("slug", slug)
+        .eq("university_id", university_id)
+        .maybeSingle();
+
+      if (existing) {
+        return NextResponse.json({ error: "This professor already exists at this university" }, { status: 409 });
+      }
+
+      const { data: prof, error } = await supabase
+        .from("professors")
+        .insert({
           name_en: name_en.trim(),
           name_ar: name_ar?.trim() || null,
-          university_id,
           slug,
+          university_id,
           is_active: true,
-        });
-        if (error) return NextResponse.json({ error: "Failed to save" }, { status: 500 });
-        break;
+        })
+        .select("id, slug")
+        .single();
+
+      if (error) {
+        console.error("Professor creation error:", error);
+        return NextResponse.json({ error: "Failed to add professor" }, { status: 500 });
       }
 
-      case "course": {
-        if (!university_id || !extra) return NextResponse.json({ error: "University and course code required" }, { status: 400 });
-        const courseSlug = slugify(`${extra}-${name_en}`);
-        const { error } = await supabase.from("courses").insert({
-          code: extra.trim().toUpperCase(),
-          title_en: name_en.trim(),
-          title_ar: name_ar?.trim() || null,
-          university_id,
-          slug: courseSlug,
-        });
-        if (error) return NextResponse.json({ error: "Failed to save" }, { status: 500 });
-        break;
+      // Get university slug for revalidation
+      const { data: uni } = await supabase
+        .from("universities")
+        .select("slug")
+        .eq("id", university_id)
+        .single();
+
+      // Revalidate the university page and home page so new professor appears immediately
+      try {
+        if (uni) revalidatePath(`/u/${uni.slug}`, "page");
+        revalidatePath("/", "page");
+      } catch {}
+
+      return NextResponse.json({
+        success: true,
+        professor: prof,
+        message: "Professor added successfully",
+      }, { status: 201 });
+
+    } else if (type === "course") {
+      const code = (extra || "").trim().toUpperCase();
+      const title = name_en.trim();
+      const slug = slugify(code || title);
+
+      const { data: course, error } = await supabase
+        .from("courses")
+        .insert({
+          code: code || null,
+          title_en: title,
+          slug,
+          university_id: university_id || null,
+          is_active: true,
+        })
+        .select("id")
+        .single();
+
+      if (error) {
+        console.error("Course creation error:", error);
+        return NextResponse.json({ error: "Failed to add course" }, { status: 500 });
       }
 
-      default:
-        return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+      return NextResponse.json({ success: true, course }, { status: 201 });
+
+    } else if (type === "university") {
+      // Universities go to suggestions for admin review
+      const { error } = await supabase
+        .from("suggestions")
+        .insert({
+          type: "university",
+          name_en: name_en.trim(),
+          name_ar: name_ar?.trim() || null,
+          status: "pending",
+        });
+
+      if (error) {
+        console.error("Suggestion error:", error);
+        return NextResponse.json({ error: "Failed to submit suggestion" }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, message: "University suggested" }, { status: 201 });
+
+    } else if (type === "link_professor_course") {
+      const { professor_id, course_id } = body;
+      if (!professor_id || !course_id) {
+        return NextResponse.json({ error: "professor_id and course_id required" }, { status: 400 });
+      }
+
+      await supabase
+        .from("professor_courses")
+        .upsert(
+          { professor_id, course_id },
+          { onConflict: "professor_id,course_id" }
+        );
+
+      return NextResponse.json({ success: true });
+
+    } else {
+      return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
-
-    return NextResponse.json({ success: true }, { status: 201 });
-  } catch {
+  } catch (err) {
+    console.error("Suggest error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

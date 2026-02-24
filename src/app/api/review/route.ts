@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 import { scanContent } from "@/lib/moderation";
 import { VALID_TAGS, RATE_LIMITS } from "@/lib/constants";
 import { getCurrentSemester } from "@/lib/utils";
@@ -28,7 +29,6 @@ export async function POST(req: NextRequest) {
     if (!anonUserHash || anonUserHash.length < 8)
       return NextResponse.json({ error: "Invalid identity token" }, { status: 400 });
 
-    // If user_id provided, verify it
     let hasVerifiedAccount = false;
     if (user_id) {
       const { data: userAccount } = await supabase
@@ -36,11 +36,8 @@ export async function POST(req: NextRequest) {
         .select("id, is_banned")
         .eq("id", user_id)
         .single();
-
       if (userAccount) {
-        if (userAccount.is_banned) {
-          return NextResponse.json({ error: "Your account has been suspended" }, { status: 403 });
-        }
+        if (userAccount.is_banned) return NextResponse.json({ error: "Your account has been suspended" }, { status: 403 });
         hasVerifiedAccount = true;
       }
     }
@@ -52,13 +49,12 @@ export async function POST(req: NextRequest) {
     const validTags = (tags || []).filter((t: string) => VALID_TAGS.includes(t as any)).slice(0, RATE_LIMITS.MAX_TAGS);
     const cleanComment = (comment || "").trim().slice(0, RATE_LIMITS.MAX_COMMENT_LENGTH).replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[REDACTED]").replace(/\+?973\s?\d{4}\s?\d{4}/g, "[REDACTED]");
 
-    // Parallel validation
     const semester = getCurrentSemester();
     const oneDayAgo = new Date(Date.now() - 86400000).toISOString();
     const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
 
     const [profResult, courseResult, userDayResult, ipHourResult, duplicateResult] = await Promise.all([
-      supabase.from("professors").select("id, university_id").eq("id", professor_id).eq("is_active", true).single(),
+      supabase.from("professors").select("id, university_id, slug").eq("id", professor_id).eq("is_active", true).single(),
       supabase.from("courses").select("id").eq("id", course_id).single(),
       supabase.from("rate_limits").select("*", { count: "exact", head: true }).eq("anon_user_hash", anonUserHash).gte("created_at", oneDayAgo),
       supabase.from("rate_limits").select("*", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("created_at", oneHourAgo),
@@ -77,15 +73,12 @@ export async function POST(req: NextRequest) {
 
     const scan = scanContent(cleanComment);
 
-    // Brigading detection
     const fiveMinAgo = new Date(Date.now() - 300000).toISOString();
     const { count: recentSameProf } = await supabase.from("reviews").select("*", { count: "exact", head: true })
       .eq("professor_id", professor_id).gte("created_at", fiveMinAgo);
     if ((recentSameProf || 0) >= 5) { scan.risk_flags.brigading_suspect = true; scan.suggested_status = "flagged"; }
 
-    // Auto-approve logic
     let status: string;
-    
     if (scan.suggested_status === "removed") {
       status = "removed";
     } else if (scan.suggested_status === "flagged") {
@@ -95,9 +88,8 @@ export async function POST(req: NextRequest) {
       const hasMeaningfulComment = cleanComment.length >= 30;
       const isExtreme = (rating_quality === 5.0 && rating_difficulty <= 1.0) || (rating_quality <= 1.0 && rating_difficulty >= 5.0);
       const extremeWithShortComment = isExtreme && cleanComment.length < 80;
-      
       if (isClean && hasMeaningfulComment && !extremeWithShortComment && hasVerifiedAccount) {
-        status = "live"; // Auto-approved
+        status = "live";
       } else {
         status = "pending";
       }
@@ -116,10 +108,25 @@ export async function POST(req: NextRequest) {
 
     supabase.from("rate_limits").insert({ anon_user_hash: anonUserHash, ip_hash: ipHash }).then();
 
-    // If auto-approved, refresh aggregates immediately
     if (status === "live") {
       await supabase.rpc("refresh_professor_aggregates", { p_professor_id: professor_id });
     }
+
+    // Revalidate professor page and university page so changes appear immediately
+    try {
+      const profSlug = profResult.data.slug;
+      if (profSlug) revalidatePath(`/p/${profSlug}`, "page");
+      
+      // Get university slug
+      const { data: uni } = await supabase
+        .from("universities")
+        .select("slug")
+        .eq("id", profResult.data.university_id)
+        .single();
+      if (uni) revalidatePath(`/u/${uni.slug}`, "page");
+      
+      revalidatePath("/", "page");
+    } catch {}
 
     const messages: Record<string, string> = {
       live: "Your review has been published! Thank you for helping fellow students.",

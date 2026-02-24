@@ -23,31 +23,17 @@ function TagPill({ tag }: { tag: string }) {
   const sentiment = getTagSentiment(tag);
   const styles = getTagStyles(sentiment);
   return (
-    <span
-      className="inline-block px-2.5 py-1 rounded-full text-[9px] font-semibold uppercase tracking-wide"
-      style={{
-        border: `1.5px solid ${styles.borderColor}`,
-        color: styles.color,
-        background: styles.background,
-      }}
-    >
+    <span className="inline-block px-2.5 py-1 rounded-full text-[9px] font-semibold uppercase tracking-wide"
+      style={{ border: `1.5px solid ${styles.borderColor}`, color: styles.color, background: styles.background }}>
       {tag}
     </span>
   );
 }
 
 export default function UniClientContent({
-  uniId,
-  uniName,
-  uniShortName,
-  uniSlug,
-  professors,
+  uniId, uniName, uniShortName, uniSlug, professors,
 }: {
-  uniId: string;
-  uniName: string;
-  uniShortName: string | null;
-  uniSlug: string;
-  professors: any[];
+  uniId: string; uniName: string; uniShortName: string | null; uniSlug: string; professors: any[];
 }) {
   const [search, setSearch] = useState("");
 
@@ -55,8 +41,7 @@ export default function UniClientContent({
     if (!search.trim()) return professors;
     const q = search.toLowerCase();
     return professors.filter((p: any) =>
-      p.name_en.toLowerCase().includes(q) ||
-      p.departments?.name_en?.toLowerCase().includes(q)
+      p.name_en.toLowerCase().includes(q) || p.departments?.name_en?.toLowerCase().includes(q)
     );
   }, [search, professors]);
 
@@ -64,35 +49,26 @@ export default function UniClientContent({
 
   return (
     <>
-      {/* Search within this uni */}
       <div className="relative mb-5">
         <svg className="absolute left-3.5 top-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+        <input value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder={`Search professors at ${uniShortName || uniName}...`}
           className="w-full pl-10 pr-4 py-3 rounded-xl text-xs outline-none transition-all"
-          style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-        />
+          style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
       </div>
 
-      {/* Header — only show "+ Add professor" link when there ARE professors */}
       <div className="mb-3 flex items-center justify-between">
-        <div className="section-label">
-          {search.trim() ? `${filtered.length} results` : "Professors"}
-        </div>
+        <div className="section-label">{search.trim() ? `${filtered.length} results` : "Professors"}</div>
         {hasProfessors && (
           <Link href={`/suggest?type=professor&university=${uniId}&universityName=${encodeURIComponent(uniName)}`}
-            className="text-[10px] font-semibold transition-all active:scale-95"
-            style={{ color: "var(--accent)" }}>
+            className="text-[10px] font-semibold transition-all active:scale-95" style={{ color: "var(--accent)" }}>
             + Add professor
           </Link>
         )}
       </div>
 
-      {/* Professor cards */}
       <div className="space-y-3 stagger-children">
         {filtered.map((p: any) => {
           const agg = p.aggregates_professor;
@@ -129,18 +105,24 @@ export default function UniClientContent({
               <div className="flex-1 min-w-0 py-0.5">
                 <div className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{p.name_en}</div>
                 <div className="text-[11px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>{p.departments?.name_en}</div>
-                {count > 0 && (
-                  <div className="flex items-center gap-1 mt-2 flex-wrap">
-                    <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{Math.round(retake)}%</span>
-                    <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>would take again</span>
-                    <span className="text-[10px] mx-1" style={{ color: "var(--border)" }}>|</span>
-                    <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{avgD.toFixed(1)}</span>
-                    <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>level of difficulty</span>
-                  </div>
-                )}
-                {topTags.length > 0 && (
-                  <div className="flex gap-1.5 mt-2 flex-wrap">
-                    {topTags.slice(0, 3).map((tag: string) => (<TagPill key={tag} tag={tag} />))}
+                {count > 0 ? (
+                  <>
+                    <div className="flex items-center gap-1 mt-2 flex-wrap">
+                      <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{Math.round(retake)}%</span>
+                      <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>would take again</span>
+                      <span className="text-[10px] mx-1" style={{ color: "var(--border)" }}>|</span>
+                      <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{avgD.toFixed(1)}</span>
+                      <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>difficulty</span>
+                    </div>
+                    {topTags.length > 0 && (
+                      <div className="flex gap-1.5 mt-2 flex-wrap">
+                        {topTags.slice(0, 3).map((tag: string) => (<TagPill key={tag} tag={tag} />))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-[10px] mt-2 font-semibold" style={{ color: "var(--accent)" }}>
+                    Tap to rate →
                   </div>
                 )}
               </div>
@@ -164,9 +146,7 @@ export default function UniClientContent({
           <div className="text-center py-8" style={{ color: "var(--text-tertiary)" }}>
             <p className="text-sm mb-3">No professors match &ldquo;{search}&rdquo;</p>
             <Link href={`/suggest?type=professor&university=${uniId}&universityName=${encodeURIComponent(uniName)}`}
-              className="text-xs font-semibold" style={{ color: "var(--accent)" }}>
-              + Add this professor
-            </Link>
+              className="text-xs font-semibold" style={{ color: "var(--accent)" }}>+ Add this professor</Link>
           </div>
         )}
       </div>

@@ -13,7 +13,7 @@ function SuggestForm() {
 
   const [nameEn, setNameEn] = useState("");
   const [nameAr, setNameAr] = useState("");
-  const [extra, setExtra] = useState(""); // course code
+  const [extra, setExtra] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -52,14 +52,18 @@ function SuggestForm() {
 
   if (success) {
     return (
-      <div className="px-5 pb-10 pt-12 text-center max-w-md mx-auto">
-        <div className="text-5xl mb-4">✅</div>
+      <div className="px-5 pb-10 pt-12 text-center max-w-md mx-auto animate-fade-up">
+        <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: "#22C55E20" }}>
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
         <h2 className="font-display text-xl font-bold mb-2" style={{ color: "var(--accent)" }}>
           {type === "professor" ? "Professor Added!" : type === "course" ? "Course Suggested!" : "University Suggested!"}
         </h2>
         <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
           {type === "professor"
-            ? "The professor has been added. You can now rate them!"
+            ? "You can now rate them!"
             : "Our team will review and add it shortly."
           }
         </p>
@@ -95,56 +99,31 @@ function SuggestForm() {
       <div className="space-y-4">
         <div>
           <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Name (English) *</label>
-          <input
-            value={nameEn}
-            onChange={(e) => setNameEn(e.target.value)}
-            placeholder={placeholder}
+          <input value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder={placeholder}
             className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
-            style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-          />
+            style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
         </div>
-
         <div>
           <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Name (Arabic) — optional</label>
-          <input
-            value={nameAr}
-            onChange={(e) => setNameAr(e.target.value)}
-            placeholder="الاسم بالعربي"
-            dir="rtl"
+          <input value={nameAr} onChange={(e) => setNameAr(e.target.value)} placeholder="الاسم بالعربي" dir="rtl"
             className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
-            style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-          />
+            style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
         </div>
-
         {type === "course" && (
           <div>
             <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Course Code *</label>
-            <input
-              value={extra}
-              onChange={(e) => setExtra(e.target.value.toUpperCase())}
-              placeholder="e.g. CS101"
+            <input value={extra} onChange={(e) => setExtra(e.target.value.toUpperCase())} placeholder="e.g. CS101"
               className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
-              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
-            />
+              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
           </div>
         )}
-
-        {error && (
-          <div className="p-3 rounded-xl text-sm" style={{ background: "#7F1D1D30", color: "var(--rating-low)" }}>
-            {error}
-          </div>
-        )}
-
-        <button
-          onClick={handleSubmit}
-          disabled={submitting || !nameEn.trim()}
+        {error && <div className="p-3 rounded-xl text-sm" style={{ background: "#7F1D1D30", color: "var(--rating-low)" }}>{error}</div>}
+        <button onClick={handleSubmit} disabled={submitting || !nameEn.trim()}
           className="w-full py-3.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.97] disabled:opacity-40"
-          style={{ background: "var(--accent)", color: "#fff" }}
-        >
+          style={{ background: "var(--accent)", color: "#fff" }}>
           {submitting ? "Submitting…" : "Submit"}
         </button>
       </div>
-
       <div className="mt-6 text-center">
         <Link href="/" className="text-xs" style={{ color: "var(--text-tertiary)" }}>← Back to Home</Link>
       </div>
