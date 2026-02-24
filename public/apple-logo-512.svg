@@ -1,0 +1,37 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Apple body -->
+  <path
+    d="M256 92
+       C179 92, 77 164, 77 282
+       C77 400, 154 470, 215 470
+       C236 470, 246 455, 256 455
+       C266 455, 276 470, 297 470
+       C358 470, 435 400, 435 282
+       C435 164, 333 92, 256 92Z"
+    fill="#D4542B"
+  />
+  <!-- Highlight -->
+  <path
+    d="M180 205
+       C164 230, 144 282, 154 333"
+    stroke="white"
+    stroke-width="14"
+    stroke-linecap="round"
+    opacity="0.3"
+    fill="none"
+  />
+  <!-- Stem -->
+  <path
+    d="M256 41 C256 41, 282 10, 318 20"
+    stroke="#D4542B"
+    stroke-width="16"
+    stroke-linecap="round"
+    fill="none"
+  />
+  <!-- Leaf -->
+  <path
+    d="M276 51 C297 20, 348 15, 333 62 C318 41, 287 41, 276 51Z"
+    fill="#D4542B"
+    opacity="0.7"
+  />
+</svg>

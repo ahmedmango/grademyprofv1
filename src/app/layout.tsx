@@ -21,9 +21,28 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Grade My Professor — Bahrain",
-  description: "Student-powered professor ratings across Bahrain. Anonymous, honest, helpful.",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://grademyprofessor.bh"),
+  title: "GradeMyProf — What Students Say",
+  description: "Anonymous professor ratings across Bahrain. See what students really think before you enroll.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.grademyprofessor.net"),
+  openGraph: {
+    title: "GradeMyProf — What Students Say",
+    description: "Anonymous professor ratings across Bahrain. See what students really think before you enroll.",
+    siteName: "GradeMyProf",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "GradeMyProf — What Students Say" }],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GradeMyProf — What Students Say",
+    description: "Anonymous professor ratings across Bahrain. See what students really think before you enroll.",
+    images: ["/og-image.png"],
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/icon-512.png",
+  },
 };
 
 export const viewport: Viewport = {
