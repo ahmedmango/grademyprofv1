@@ -35,6 +35,7 @@ export default function MyReviewsPage() {
     switch (status) {
       case "live": return "bg-green-50 text-green-700 border-green-200";
       case "pending": case "flagged": return "bg-amber-50 text-amber-700 border-amber-200";
+      case "removed": return "bg-red-50 text-red-600 border-red-200";
       default: return "bg-gray-50 text-gray-500 border-gray-200";
     }
   };
@@ -97,6 +98,11 @@ export default function MyReviewsPage() {
               {(r.display_status === "pending" || r.display_status === "flagged") && (
                 <div className="mt-2 p-2.5 bg-amber-50/50 rounded-lg border border-amber-100">
                   <p className="text-[11px] text-amber-700 leading-relaxed">⏳ Your review is being checked by our moderation team. Most reviews are approved within 24 hours.</p>
+                </div>
+              )}
+              {r.display_status === "removed" && (
+                <div className="mt-2 p-2.5 bg-red-50/50 rounded-lg border border-red-100">
+                  <p className="text-[11px] text-red-600 leading-relaxed">This review was rejected by our moderation team. It may have violated our community guidelines. You can submit a new review for this professor.</p>
                 </div>
               )}
             </div>

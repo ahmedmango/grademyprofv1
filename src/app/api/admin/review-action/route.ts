@@ -4,7 +4,7 @@ import { authenticateAdmin } from "@/lib/admin-auth";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 const STATUS_MAP: Record<string, string> = { approve: "live", reject: "removed", shadow: "shadow", flag: "flagged" };
-const VALID_ACTIONS = ["approve", "reject", "shadow", "flag"];
+const VALID_ACTIONS = ["approve", "reject", "shadow", "flag", "delete"];
 
 export async function POST(req: NextRequest) {
   const admin = await authenticateAdmin(req);
@@ -19,6 +19,17 @@ export async function POST(req: NextRequest) {
 
   const { data: review } = await supabase.from("reviews").select("id, professor_id, status").eq("id", review_id).single();
   if (!review) return NextResponse.json({ error: "Review not found" }, { status: 404, headers: NO_STORE_HEADERS });
+
+  if (action === "delete") {
+    if (admin.role !== "super_admin" && admin.role !== "moderator")
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403, headers: NO_STORE_HEADERS });
+    const { error } = await supabase.from("reviews").delete().eq("id", review_id);
+    if (error) return NextResponse.json({ error: "Failed to delete" }, { status: 500, headers: NO_STORE_HEADERS });
+    if (review.status === "live") {
+      await supabase.rpc("refresh_professor_aggregates", { p_professor_id: review.professor_id });
+    }
+    return NextResponse.json({ success: true, review_id, action: "deleted" }, { headers: NO_STORE_HEADERS });
+  }
 
   const { error } = await supabase.from("reviews").update({ status: newStatus, updated_at: new Date().toISOString() }).eq("id", review_id);
   if (error) return NextResponse.json({ error: "Failed to update" }, { status: 500, headers: NO_STORE_HEADERS });
@@ -46,8 +57,14 @@ export async function PUT(req: NextRequest) {
   const newStatus = STATUS_MAP[action];
 
   const { data: reviews } = await supabase.from("reviews").select("id, professor_id, status").in("id", review_ids);
-  const { error } = await supabase.from("reviews").update({ status: newStatus, updated_at: new Date().toISOString() }).in("id", review_ids);
-  if (error) return NextResponse.json({ error: "Bulk update failed" }, { status: 500, headers: NO_STORE_HEADERS });
+
+  if (action === "delete") {
+    const { error } = await supabase.from("reviews").delete().in("id", review_ids);
+    if (error) return NextResponse.json({ error: "Bulk delete failed" }, { status: 500, headers: NO_STORE_HEADERS });
+  } else {
+    const { error } = await supabase.from("reviews").update({ status: newStatus, updated_at: new Date().toISOString() }).in("id", review_ids);
+    if (error) return NextResponse.json({ error: "Bulk update failed" }, { status: 500, headers: NO_STORE_HEADERS });
+  }
 
   const professorIds = [...new Set((reviews || []).map((r) => r.professor_id))];
   if (professorIds.length > 0) {

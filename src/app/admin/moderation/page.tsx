@@ -110,6 +110,13 @@ export default function ModerationPage() {
               className="px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 disabled:opacity-50">
               ✕ Reject All
             </button>
+            {tab === "removed" && (
+              <button onClick={() => { if (confirm("Permanently delete selected reviews? This cannot be undone.")) bulkAction("delete"); }}
+                disabled={actionLoading === "bulk"}
+                className="px-3 py-1.5 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 disabled:opacity-50">
+                🗑 Delete Forever
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -314,6 +321,12 @@ function ReviewModCard({
               <button onClick={() => onAction("flag")} disabled={loading}
                 className="px-3 py-1.5 bg-amber-50 text-amber-700 text-xs font-medium rounded-lg hover:bg-amber-100 disabled:opacity-50 transition">
                 ⚑ Flag
+              </button>
+            )}
+            {currentTab === "removed" && (
+              <button onClick={() => { if (confirm("Permanently delete this review? This cannot be undone.")) onAction("delete"); }} disabled={loading}
+                className="px-3 py-1.5 bg-gray-800 text-white text-xs font-medium rounded-lg hover:bg-gray-900 disabled:opacity-50 transition">
+                🗑 Delete Forever
               </button>
             )}
           </div>

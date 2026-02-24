@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const { data: reviews, error } = await supabase.from("reviews")
     .select(`id, rating_quality, rating_difficulty, would_take_again, tags, comment, status, created_at, semester_window,
       professors ( name_en, slug ), courses ( code, title_en ), universities ( name_en )`)
-    .eq("anon_user_hash", anonUserHash).neq("status", "removed")
+    .eq("anon_user_hash", anonUserHash)
     .order("created_at", { ascending: false }).limit(50);
 
   if (error) return NextResponse.json({ error: "Failed to fetch reviews" }, { status: 500, headers: NO_STORE_HEADERS });
@@ -20,7 +20,8 @@ export async function GET(req: NextRequest) {
     ...r,
     display_status: r.status === "shadow" ? "live" : r.status,
     status_label: r.status === "live" || r.status === "shadow" ? "Published"
-      : r.status === "pending" || r.status === "flagged" ? "Under Review" : "Removed",
+      : r.status === "pending" || r.status === "flagged" ? "Under Review"
+      : "Rejected",
   }));
 
   // Count approved (live or shadow — shadow counts as approved for gate purposes)
