@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 export async function GET(req: NextRequest) {
   const slug = req.nextUrl.searchParams.get("slug");
-  if (!slug) return NextResponse.json({ error: "Missing slug" }, { status: 400 });
+  if (!slug) return NextResponse.json({ error: "Missing slug" }, { status: 400, headers: NO_STORE_HEADERS });
 
   const sort = req.nextUrl.searchParams.get("sort") || "newest";
   const courseId = req.nextUrl.searchParams.get("course") || null;
@@ -21,7 +22,7 @@ export async function GET(req: NextRequest) {
       professor_courses ( courses ( id, code, title_en, slug ) )`)
     .eq("slug", slug).eq("is_active", true).single();
 
-  if (error || !professor) return NextResponse.json({ error: "Professor not found" }, { status: 404 });
+  if (error || !professor) return NextResponse.json({ error: "Professor not found" }, { status: 404, headers: NO_STORE_HEADERS });
 
   let reviewQuery = supabase
     .from("reviews")
@@ -60,5 +61,5 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     professor, reviews: reviews || [], total_reviews: count || 0,
     page, total_pages: Math.ceil((count || 0) / limit), course_stats: courseStats,
-  }, { headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" } });
+  }, { headers: NO_STORE_HEADERS });
 }

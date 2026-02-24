@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import UniGatedWrapper from "./UniGatedWrapper";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function UniversityPage({ params }: { params: { universitySlug: string } }) {
   const supabase = createServerClient();
 

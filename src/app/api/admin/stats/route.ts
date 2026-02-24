@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authenticateAdmin } from "@/lib/admin-auth";
+import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 export async function GET(req: NextRequest) {
   const admin = await authenticateAdmin(req);
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS });
 
   const supabase = createServiceClient();
 
@@ -32,5 +33,5 @@ export async function GET(req: NextRequest) {
     reviews_today: reviewsToday || 0,
     total_reviews: Object.values(counts as Record<string, number>).reduce((a: number, b: number) => a + b, 0),
     top_professors: topProfessors || [],
-  });
+  }, { headers: NO_STORE_HEADERS });
 }

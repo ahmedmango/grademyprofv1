@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authenticateAdmin } from "@/lib/admin-auth";
+import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 export async function GET(req: NextRequest) {
   const admin = await authenticateAdmin(req);
-  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS });
 
   const supabase = createServiceClient();
 
@@ -36,7 +37,7 @@ export async function GET(req: NextRequest) {
 
   if (error) {
     console.error("Mod queue error:", error);
-    return NextResponse.json({ error: "Failed to fetch queue" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to fetch queue" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 
   // Get counts per status for the dashboard
@@ -63,5 +64,5 @@ export async function GET(req: NextRequest) {
     page,
     total_pages: Math.ceil((count || 0) / limit),
     status_counts: counts,
-  });
+  }, { headers: NO_STORE_HEADERS });
 }

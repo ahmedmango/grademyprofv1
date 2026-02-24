@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 // POST: Create or find a course for a professor during rating flow
 export async function POST(req: NextRequest) {
@@ -8,10 +9,10 @@ export async function POST(req: NextRequest) {
     const { course_code, course_title, professor_id } = await req.json();
 
     if (!course_code || course_code.trim().length < 2) {
-      return NextResponse.json({ error: "Course code is required" }, { status: 400 });
+      return NextResponse.json({ error: "Course code is required" }, { status: 400, headers: NO_STORE_HEADERS });
     }
     if (!professor_id) {
-      return NextResponse.json({ error: "Professor ID is required" }, { status: 400 });
+      return NextResponse.json({ error: "Professor ID is required" }, { status: 400, headers: NO_STORE_HEADERS });
     }
 
     const code = course_code.trim().toUpperCase();
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (!prof) {
-      return NextResponse.json({ error: "Professor not found" }, { status: 404 });
+      return NextResponse.json({ error: "Professor not found" }, { status: 404, headers: NO_STORE_HEADERS });
     }
 
     // Check if course already exists with this code at this university
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
 
       if (insertError) {
         console.error("Course creation error:", insertError);
-        return NextResponse.json({ error: "Failed to create course" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to create course" }, { status: 500, headers: NO_STORE_HEADERS });
       }
       courseId = newCourse.id;
     }
@@ -71,9 +72,9 @@ export async function POST(req: NextRequest) {
       )
       .then(() => {});
 
-    return NextResponse.json({ course_id: courseId, code });
+    return NextResponse.json({ course_id: courseId, code }, { headers: NO_STORE_HEADERS });
   } catch (err) {
     console.error("Course creation error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 function slugify(str: string): string {
   return str
@@ -17,12 +18,12 @@ export async function POST(req: NextRequest) {
     const { type, name_en, name_ar, university_id, extra } = body;
 
     if (!type || !name_en || name_en.trim().length < 2) {
-      return NextResponse.json({ error: "Name is required (min 2 characters)" }, { status: 400 });
+      return NextResponse.json({ error: "Name is required (min 2 characters)" }, { status: 400, headers: NO_STORE_HEADERS });
     }
 
     if (type === "professor") {
       if (!university_id) {
-        return NextResponse.json({ error: "University is required" }, { status: 400 });
+        return NextResponse.json({ error: "University is required" }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
       const slug = slugify(name_en.trim());
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (existing) {
-        return NextResponse.json({ error: "This professor already exists at this university" }, { status: 409 });
+        return NextResponse.json({ error: "This professor already exists at this university" }, { status: 409, headers: NO_STORE_HEADERS });
       }
 
       const { data: prof, error } = await supabase
@@ -53,27 +54,31 @@ export async function POST(req: NextRequest) {
 
       if (error) {
         console.error("Professor creation error:", error);
-        return NextResponse.json({ error: "Failed to add professor" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to add professor" }, { status: 500, headers: NO_STORE_HEADERS });
       }
 
-      // Get university slug for revalidation
       const { data: uni } = await supabase
         .from("universities")
         .select("slug")
         .eq("id", university_id)
         .single();
 
-      // Revalidate the university page and home page so new professor appears immediately
       try {
-        if (uni) revalidatePath(`/u/${uni.slug}`, "page");
+        const paths: string[] = [];
+        if (uni) {
+          revalidatePath(`/u/${uni.slug}`, "page");
+          paths.push(`/u/${uni.slug}`);
+        }
         revalidatePath("/", "page");
+        paths.push("/");
+        console.log("REVALIDATE TRIGGERED [suggest]", paths);
       } catch {}
 
       return NextResponse.json({
         success: true,
         professor: prof,
         message: "Professor added successfully",
-      }, { status: 201 });
+      }, { status: 201, headers: NO_STORE_HEADERS });
 
     } else if (type === "course") {
       const code = (extra || "").trim().toUpperCase();
@@ -94,10 +99,10 @@ export async function POST(req: NextRequest) {
 
       if (error) {
         console.error("Course creation error:", error);
-        return NextResponse.json({ error: "Failed to add course" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to add course" }, { status: 500, headers: NO_STORE_HEADERS });
       }
 
-      return NextResponse.json({ success: true, course }, { status: 201 });
+      return NextResponse.json({ success: true, course }, { status: 201, headers: NO_STORE_HEADERS });
 
     } else if (type === "university") {
       // Universities go to suggestions for admin review
@@ -112,15 +117,15 @@ export async function POST(req: NextRequest) {
 
       if (error) {
         console.error("Suggestion error:", error);
-        return NextResponse.json({ error: "Failed to submit suggestion" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to submit suggestion" }, { status: 500, headers: NO_STORE_HEADERS });
       }
 
-      return NextResponse.json({ success: true, message: "University suggested" }, { status: 201 });
+      return NextResponse.json({ success: true, message: "University suggested" }, { status: 201, headers: NO_STORE_HEADERS });
 
     } else if (type === "link_professor_course") {
       const { professor_id, course_id } = body;
       if (!professor_id || !course_id) {
-        return NextResponse.json({ error: "professor_id and course_id required" }, { status: 400 });
+        return NextResponse.json({ error: "professor_id and course_id required" }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
       await supabase
@@ -130,13 +135,13 @@ export async function POST(req: NextRequest) {
           { onConflict: "professor_id,course_id" }
         );
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true }, { headers: NO_STORE_HEADERS });
 
     } else {
-      return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid type" }, { status: 400, headers: NO_STORE_HEADERS });
     }
   } catch (err) {
     console.error("Suggest error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 }

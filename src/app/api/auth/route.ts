@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { validateUsername, validateEmail, validatePassword } from "@/lib/validation";
+import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 function hashPassword(password: string): string {
   // Simple hash for comparison — in production use bcrypt
@@ -20,30 +21,30 @@ export async function POST(req: NextRequest) {
 
       // Validate terms acceptance
       if (!accepted_terms) {
-        return NextResponse.json({ error: "You must accept the Terms of Service and Privacy Policy" }, { status: 400 });
+        return NextResponse.json({ error: "You must accept the Terms of Service and Privacy Policy" }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
       // Validate username
       const usernameCheck = validateUsername(username || "");
       if (!usernameCheck.valid) {
-        return NextResponse.json({ error: usernameCheck.error }, { status: 400 });
+        return NextResponse.json({ error: usernameCheck.error }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
       // Validate email
       const emailCheck = validateEmail(email || "");
       if (!emailCheck.valid) {
-        return NextResponse.json({ error: emailCheck.error }, { status: 400 });
+        return NextResponse.json({ error: emailCheck.error }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
       // Validate password
       const passwordCheck = validatePassword(password || "");
       if (!passwordCheck.valid) {
-        return NextResponse.json({ error: passwordCheck.error }, { status: 400 });
+        return NextResponse.json({ error: passwordCheck.error }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
       // Confirm password match
       if (password !== confirm_password) {
-        return NextResponse.json({ error: "Passwords do not match" }, { status: 400 });
+        return NextResponse.json({ error: "Passwords do not match" }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
       // Check if username taken
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (existingUser) {
-        return NextResponse.json({ error: "Username is already taken" }, { status: 409 });
+        return NextResponse.json({ error: "Username is already taken" }, { status: 409, headers: NO_STORE_HEADERS });
       }
 
       // Check if email taken
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
         .maybeSingle();
 
       if (existingEmail) {
-        return NextResponse.json({ error: "Email is already registered" }, { status: 409 });
+        return NextResponse.json({ error: "Email is already registered" }, { status: 409, headers: NO_STORE_HEADERS });
       }
 
       // Create account using Supabase crypt for password hashing
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
 
       if (insertError) {
         console.error("Registration error:", insertError);
-        return NextResponse.json({ error: "Failed to create account" }, { status: 500 });
+        return NextResponse.json({ error: "Failed to create account" }, { status: 500, headers: NO_STORE_HEADERS });
       }
 
       return NextResponse.json({
@@ -89,13 +90,13 @@ export async function POST(req: NextRequest) {
           email: email.trim().toLowerCase(),
         },
         message: "Account created successfully",
-      }, { status: 201 });
+      }, { status: 201, headers: NO_STORE_HEADERS });
 
     } else if (action === "login") {
       const { email, password } = body;
 
       if (!email || !password) {
-        return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+        return NextResponse.json({ error: "Email and password are required" }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
       // Verify credentials using crypt comparison
@@ -105,13 +106,13 @@ export async function POST(req: NextRequest) {
       });
 
       if (error || !user || user.length === 0) {
-        return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
+        return NextResponse.json({ error: "Invalid email or password" }, { status: 401, headers: NO_STORE_HEADERS });
       }
 
       const userData = user[0] || user;
 
       if (userData.is_banned) {
-        return NextResponse.json({ error: "Account has been suspended" }, { status: 403 });
+        return NextResponse.json({ error: "Account has been suspended" }, { status: 403, headers: NO_STORE_HEADERS });
       }
 
       return NextResponse.json({
@@ -121,13 +122,13 @@ export async function POST(req: NextRequest) {
           username: userData.username,
           email: userData.email,
         },
-      });
+      }, { headers: NO_STORE_HEADERS });
 
     } else {
-      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid action" }, { status: 400, headers: NO_STORE_HEADERS });
     }
   } catch (err) {
     console.error("Auth error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 }

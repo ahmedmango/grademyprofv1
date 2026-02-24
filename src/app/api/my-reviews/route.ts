@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
+import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 export async function GET(req: NextRequest) {
   const anonUserHash = req.headers.get("x-anon-user-hash");
   if (!anonUserHash || anonUserHash.length < 8)
-    return NextResponse.json({ error: "Missing identity" }, { status: 400 });
+    return NextResponse.json({ error: "Missing identity" }, { status: 400, headers: NO_STORE_HEADERS });
 
   const supabase = createServiceClient();
   const { data: reviews, error } = await supabase.from("reviews")
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
     .eq("anon_user_hash", anonUserHash).neq("status", "removed")
     .order("created_at", { ascending: false }).limit(50);
 
-  if (error) return NextResponse.json({ error: "Failed to fetch reviews" }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to fetch reviews" }, { status: 500, headers: NO_STORE_HEADERS });
 
   const mapped = (reviews || []).map((r: any) => ({
     ...r,
@@ -31,5 +32,5 @@ export async function GET(req: NextRequest) {
     reviews: mapped,
     count: mapped.length,
     approved_count: approvedCount,
-  });
+  }, { headers: NO_STORE_HEADERS });
 }

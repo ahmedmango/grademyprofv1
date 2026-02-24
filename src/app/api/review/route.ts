@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { scanContent } from "@/lib/moderation";
 import { VALID_TAGS, RATE_LIMITS } from "@/lib/constants";
 import { getCurrentSemester } from "@/lib/utils";
+import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 function hashString(str: string): string {
   let hash = 0;
@@ -25,9 +26,9 @@ export async function POST(req: NextRequest) {
       tags, comment, user_id } = body;
 
     if (!professor_id || !course_id || !rating_quality || !rating_difficulty)
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: NO_STORE_HEADERS });
     if (!anonUserHash || anonUserHash.length < 8)
-      return NextResponse.json({ error: "Invalid identity token" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid identity token" }, { status: 400, headers: NO_STORE_HEADERS });
 
     let hasVerifiedAccount = false;
     if (user_id) {
@@ -37,14 +38,14 @@ export async function POST(req: NextRequest) {
         .eq("id", user_id)
         .single();
       if (userAccount) {
-        if (userAccount.is_banned) return NextResponse.json({ error: "Your account has been suspended" }, { status: 403 });
+        if (userAccount.is_banned) return NextResponse.json({ error: "Your account has been suspended" }, { status: 403, headers: NO_STORE_HEADERS });
         hasVerifiedAccount = true;
       }
     }
 
     const validRating = (v: number) => typeof v === "number" && v >= 0.5 && v <= 5.0 && (v * 10) % 5 === 0;
     if (!validRating(rating_quality) || !validRating(rating_difficulty))
-      return NextResponse.json({ error: "Ratings must be 0.5–5.0 in 0.5 increments" }, { status: 400 });
+      return NextResponse.json({ error: "Ratings must be 0.5–5.0 in 0.5 increments" }, { status: 400, headers: NO_STORE_HEADERS });
 
     const validTags = (tags || []).filter((t: string) => VALID_TAGS.includes(t as any)).slice(0, RATE_LIMITS.MAX_TAGS);
     const cleanComment = (comment || "").trim().slice(0, RATE_LIMITS.MAX_COMMENT_LENGTH).replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[REDACTED]").replace(/\+?973\s?\d{4}\s?\d{4}/g, "[REDACTED]");
@@ -62,14 +63,14 @@ export async function POST(req: NextRequest) {
         .eq("course_id", course_id).eq("semester_window", semester).neq("status", "removed").maybeSingle(),
     ]);
 
-    if (!profResult.data) return NextResponse.json({ error: "Professor not found" }, { status: 404 });
-    if (!courseResult.data) return NextResponse.json({ error: "Course not found" }, { status: 404 });
+    if (!profResult.data) return NextResponse.json({ error: "Professor not found" }, { status: 404, headers: NO_STORE_HEADERS });
+    if (!courseResult.data) return NextResponse.json({ error: "Course not found" }, { status: 404, headers: NO_STORE_HEADERS });
     if ((userDayResult.count || 0) >= RATE_LIMITS.MAX_REVIEWS_PER_DAY)
-      return NextResponse.json({ error: "Daily review limit reached. Try again tomorrow." }, { status: 429 });
+      return NextResponse.json({ error: "Daily review limit reached. Try again tomorrow." }, { status: 429, headers: NO_STORE_HEADERS });
     if ((ipHourResult.count || 0) >= RATE_LIMITS.MAX_REVIEWS_PER_IP_HOUR)
-      return NextResponse.json({ error: "Too many submissions from this network." }, { status: 429 });
+      return NextResponse.json({ error: "Too many submissions from this network." }, { status: 429, headers: NO_STORE_HEADERS });
     if (duplicateResult.data)
-      return NextResponse.json({ error: "You already reviewed this professor for this course this semester." }, { status: 409 });
+      return NextResponse.json({ error: "You already reviewed this professor for this course this semester." }, { status: 409, headers: NO_STORE_HEADERS });
 
     const scan = scanContent(cleanComment);
 
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
       user_id: user_id || null,
     }).select("id").single();
 
-    if (insertError) { console.error("Insert error:", insertError); return NextResponse.json({ error: "Failed to save review" }, { status: 500 }); }
+    if (insertError) { console.error("Insert error:", insertError); return NextResponse.json({ error: "Failed to save review" }, { status: 500, headers: NO_STORE_HEADERS }); }
 
     supabase.from("rate_limits").insert({ anon_user_hash: anonUserHash, ip_hash: ipHash }).then();
 
@@ -115,17 +116,23 @@ export async function POST(req: NextRequest) {
     // Revalidate professor page and university page so changes appear immediately
     try {
       const profSlug = profResult.data.slug;
-      if (profSlug) revalidatePath(`/p/${profSlug}`, "page");
-      
-      // Get university slug
+      const paths: string[] = [];
+      if (profSlug) {
+        revalidatePath(`/p/${profSlug}`, "page");
+        paths.push(`/p/${profSlug}`);
+      }
       const { data: uni } = await supabase
         .from("universities")
         .select("slug")
         .eq("id", profResult.data.university_id)
         .single();
-      if (uni) revalidatePath(`/u/${uni.slug}`, "page");
-      
+      if (uni) {
+        revalidatePath(`/u/${uni.slug}`, "page");
+        paths.push(`/u/${uni.slug}`);
+      }
       revalidatePath("/", "page");
+      paths.push("/");
+      console.log("REVALIDATE TRIGGERED [review submission]", paths);
     } catch {}
 
     const messages: Record<string, string> = {
@@ -139,9 +146,9 @@ export async function POST(req: NextRequest) {
       success: true, review_id: review.id, status,
       auto_approved: status === "live",
       message: messages[status] || messages.pending,
-    }, { status: 201 });
+    }, { status: 201, headers: NO_STORE_HEADERS });
   } catch (err) {
     console.error("Review submission error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 }

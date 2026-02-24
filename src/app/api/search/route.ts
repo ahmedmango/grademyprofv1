@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-
-export const revalidate = 10;
+import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim();
   const type = req.nextUrl.searchParams.get("type") || "all";
 
   if (!q || q.length < 1) {
-    return NextResponse.json({ professors: [], courses: [], course_professors: [], universities: [] });
+    return NextResponse.json({ professors: [], courses: [], course_professors: [], universities: [] }, { headers: NO_STORE_HEADERS });
   }
 
   const sanitized = q.replace(/[^\w\s\-.']/g, "").slice(0, 100);
-  if (!sanitized) return NextResponse.json({ professors: [], courses: [], course_professors: [], universities: [] });
+  if (!sanitized) return NextResponse.json({ professors: [], courses: [], course_professors: [], universities: [] }, { headers: NO_STORE_HEADERS });
 
   const supabase = createServerClient();
   const results: { professors: any[]; courses: any[]; course_professors: any[]; universities: any[] } = {
@@ -95,7 +94,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json(results, {
-    headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" },
-  });
+  return NextResponse.json(results, { headers: NO_STORE_HEADERS });
 }
