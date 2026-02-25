@@ -44,25 +44,41 @@ export default function EntitiesPage() {
 
   const handleSave = async (formData: Entity) => {
     const method = editItem ? "PUT" : "POST";
-    const body = editItem ? { id: editItem.id, ...formData } : formData;
+    const cleanData: Entity = {};
+    const validKeys = ["name_en", "name_ar", "university_id", "department_id", "is_active", "photo_url", "country", "code", "title_en", "title_ar", "short_name", "slug"];
+    for (const k of Object.keys(formData)) {
+      if (validKeys.includes(k)) cleanData[k] = formData[k];
+    }
+    const body = editItem ? { id: editItem.id, ...cleanData } : cleanData;
 
-    await fetch(`/api/admin/${activeTab}`, {
+    const res = await fetch(`/api/admin/${activeTab}`, {
       method,
       headers: { "Content-Type": "application/json", Authorization: authHeader() },
       body: JSON.stringify(body),
     });
+    if (!res.ok) {
+      const d = await res.json();
+      alert(d.error || "Failed to save");
+      return;
+    }
     setShowForm(false);
     setEditItem(null);
     fetchItems();
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure? This will delete all related data.")) return;
-    await fetch(`/api/admin/${activeTab}`, {
+    if (!confirm("Are you sure? This will delete this item and related data.")) return;
+    const res = await fetch(`/api/admin/${activeTab}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json", Authorization: authHeader() },
       body: JSON.stringify({ id }),
     });
+    const d = await res.json();
+    if (!res.ok) {
+      alert(d.error || "Delete failed");
+      return;
+    }
+    if (d.soft_deleted) alert(d.message || "Deactivated (has existing reviews)");
     fetchItems();
   };
 
@@ -122,6 +138,8 @@ export default function EntitiesPage() {
                 {(activeTab !== "universities") && <th className="text-left px-4 py-3 font-medium text-gray-500">University</th>}
                 {activeTab === "courses" && <th className="text-left px-4 py-3 font-medium text-gray-500">Code</th>}
                 <th className="text-left px-4 py-3 font-medium text-gray-500">Slug</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500">Added</th>
+                {activeTab === "professors" && <th className="text-left px-4 py-3 font-medium text-gray-500">Status</th>}
                 <th className="text-right px-4 py-3 font-medium text-gray-500">Actions</th>
               </tr>
             </thead>
@@ -132,6 +150,16 @@ export default function EntitiesPage() {
                   {activeTab !== "universities" && <td className="px-4 py-3 text-gray-500">{item.universities?.name_en || "—"}</td>}
                   {activeTab === "courses" && <td className="px-4 py-3 text-brand-500 font-medium">{item.code}</td>}
                   <td className="px-4 py-3 text-gray-400 text-xs font-mono">{item.slug}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">
+                    {item.created_at ? new Date(item.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" }) : "—"}
+                  </td>
+                  {activeTab === "professors" && (
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${item.is_active !== false ? "bg-green-50 text-green-600" : "bg-red-50 text-red-500"}`}>
+                        {item.is_active !== false ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                  )}
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => { setEditItem(item); setShowForm(true); }}
@@ -145,7 +173,7 @@ export default function EntitiesPage() {
                 </tr>
               ))}
               {items.length === 0 && (
-                <tr><td colSpan={5} className="text-center py-12 text-gray-400">No {activeTab} found</td></tr>
+                <tr><td colSpan={7} className="text-center py-12 text-gray-400">No {activeTab} found</td></tr>
               )}
             </tbody>
           </table>

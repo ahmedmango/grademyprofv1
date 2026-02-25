@@ -40,8 +40,14 @@ export async function PUT(req: NextRequest) {
   const admin = await authenticateAdmin(req);
   if (!admin || admin.role === "viewer") return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS });
 
-  const { id, ...updates } = await req.json();
+  const body = await req.json();
+  const { id } = body;
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400, headers: NO_STORE_HEADERS });
+
+  const valid = ["name_en", "name_ar", "university_id"];
+  const updates: Record<string, any> = {};
+  for (const k of valid) { if (k in body) updates[k] = body[k]; }
+  if (updates.name_en) updates.slug = slugify(updates.name_en);
 
   const supabase = createServiceClient();
   const { data, error } = await supabase.from("departments").update(updates).eq("id", id).select().single();
