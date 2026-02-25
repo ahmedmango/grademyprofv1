@@ -26,10 +26,32 @@ function RateForm() {
   const preselectedCourseId = searchParams.get("courseId") || "";
   const preselectedCourseName = searchParams.get("courseName") || "";
 
-  const [courseCode, setCourseCode] = useState("");
-  const [courseTitle, setCourseTitle] = useState("");
+  const [existingCourses, setExistingCourses] = useState<{ id: string; code: string; title_en: string }[]>([]);
+  const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>(preselectedCourseId ? [preselectedCourseId] : []);
+  const [newCourseCode, setNewCourseCode] = useState("");
+  const [newCourseTitle, setNewCourseTitle] = useState("");
+  const [showAddCourse, setShowAddCourse] = useState(false);
+  const [loadingCourses, setLoadingCourses] = useState(false);
   const hasCoursePreselected = !!preselectedCourseId;
   const [step, setStep] = useState(hasCoursePreselected ? 2 : 1);
+
+  useEffect(() => {
+    if (!professorId || hasCoursePreselected) return;
+    setLoadingCourses(true);
+    fetch(`/api/professor-courses?professorId=${professorId}`)
+      .then((r) => r.json())
+      .then((d) => setExistingCourses(d.courses || []))
+      .catch(() => {})
+      .finally(() => setLoadingCourses(false));
+  }, [professorId, hasCoursePreselected]);
+
+  const toggleCourse = (id: string) => {
+    setSelectedCourseIds((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  };
+
+  const totalCourseCount = selectedCourseIds.length + (newCourseCode.trim().length >= 2 ? 1 : 0);
   const [quality, setQuality] = useState(0);
   const [difficulty, setDifficulty] = useState(0);
   const [wouldTakeAgain, setWouldTakeAgain] = useState<boolean | null>(null);
@@ -80,7 +102,7 @@ function RateForm() {
 
   const canAdvance = () => {
     switch (step) {
-      case 1: return courseCode.trim().length >= 2;
+      case 1: return totalCourseCount > 0;
       case 2: return quality > 0 && difficulty > 0;
       case 3: return grade.length > 0;
       case 4: return true;
@@ -128,15 +150,15 @@ function RateForm() {
     try {
       const hash = await getAnonUserHash();
 
-      let courseId = preselectedCourseId;
+      const courseIdsToSubmit: string[] = [...selectedCourseIds];
 
-      if (!courseId) {
+      if (newCourseCode.trim().length >= 2) {
         const courseRes = await fetch("/api/create-course", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            course_code: courseCode.trim(),
-            course_title: courseTitle.trim() || undefined,
+            course_code: newCourseCode.trim(),
+            course_title: newCourseTitle.trim() || undefined,
             professor_id: professorId,
           }),
         });
@@ -146,27 +168,49 @@ function RateForm() {
           setSubmitting(false);
           return;
         }
-        courseId = courseData.course_id;
+        courseIdsToSubmit.push(courseData.course_id);
       }
 
-      const res = await fetch("/api/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-anon-user-hash": hash },
-        body: JSON.stringify({
-          professor_id: professorId, course_id: courseId,
-          rating_quality: quality, rating_difficulty: difficulty,
-          would_take_again: wouldTakeAgain, grade_received: grade,
-          tags, comment: comment.trim(), user_id: userId,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
+      if (courseIdsToSubmit.length === 0) {
+        setError("Please select or add at least one course.");
+        setSubmitting(false);
+        return;
+      }
+
+      let lastAutoApproved = false;
+      let successCount = 0;
+      let lastError = "";
+
+      for (const cid of courseIdsToSubmit) {
+        const res = await fetch("/api/review", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-anon-user-hash": hash },
+          body: JSON.stringify({
+            professor_id: professorId, course_id: cid,
+            rating_quality: quality, rating_difficulty: difficulty,
+            would_take_again: wouldTakeAgain, grade_received: grade,
+            tags, comment: comment.trim(), user_id: userId,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          successCount++;
+          if (data.auto_approved) lastAutoApproved = true;
+        } else {
+          lastError = data.error || "Failed to submit review";
+        }
+      }
+
+      if (successCount > 0) {
         try { localStorage.removeItem("gmp_gate_status"); localStorage.removeItem("gmp_review_count"); } catch {}
         await refreshGate();
-        setAutoApproved(data.auto_approved || false);
+        setAutoApproved(lastAutoApproved);
         setSuccess(true);
+        if (lastError && successCount < courseIdsToSubmit.length) {
+          setError(`${successCount}/${courseIdsToSubmit.length} submitted. Some failed: ${lastError}`);
+        }
       } else {
-        setError(data.error || "Failed to submit review");
+        setError(lastError || "Failed to submit review");
       }
     } catch {
       setError("Connection failed. Please try again.");
@@ -194,12 +238,16 @@ function RateForm() {
           </svg>
         </div>
         <h2 className="font-display text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-          {autoApproved ? "Review Published!" : "Review Submitted!"}
+          {autoApproved
+            ? (totalCourseCount > 1 ? "Reviews Published!" : "Review Published!")
+            : (totalCourseCount > 1 ? "Reviews Submitted!" : "Review Submitted!")}
         </h2>
         <p className="text-sm mb-2" style={{ color: "var(--text-secondary)" }}>
-          {autoApproved
-            ? "Your review is live. Thank you for helping fellow students!"
-            : "Your review is pending moderation. Most reviews are approved within 24 hours."}
+          {totalCourseCount > 1
+            ? `Submitted for ${totalCourseCount} courses. ${autoApproved ? "They are live!" : "Pending moderation — most are approved within 24 hours."}`
+            : autoApproved
+              ? "Your review is live. Thank you for helping fellow students!"
+              : "Your review is pending moderation. Most reviews are approved within 24 hours."}
         </p>
         <p className="text-xs mb-6 font-semibold" style={{ color: "var(--accent)" }}>All ratings are now unlocked for you!</p>
         <div className="flex gap-3 justify-center flex-wrap">
@@ -223,7 +271,11 @@ function RateForm() {
           className="w-10 h-10 flex items-center justify-center rounded-xl text-lg transition-all duration-150 active:scale-90" style={{ color: "var(--accent)" }}>←</button>
         <div className="flex-1">
           <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{professorName}</div>
-          {(courseCode || preselectedCourseName) && <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>{courseCode || preselectedCourseName}</div>}
+          {(totalCourseCount > 0 || preselectedCourseName) && (
+            <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+              {preselectedCourseName || `${totalCourseCount} course${totalCourseCount !== 1 ? "s" : ""} selected`}
+            </div>
+          )}
         </div>
         <div className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>Step {displayStep}/{displayTotal}</div>
       </div>
@@ -234,24 +286,82 @@ function RateForm() {
 
       {error && <div className="mb-4 p-3 rounded-xl text-sm" style={{ background: "#7F1D1D30", color: "var(--rating-low)" }}>{error}</div>}
 
-      {/* STEP 1: Course */}
+      {/* STEP 1: Course Selection */}
       {step === 1 && (
         <div className="space-y-4 animate-fade-up">
           <div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>Which course did you take with {professorName}?</label>
-            <p className="text-[10px] mb-3" style={{ color: "var(--text-tertiary)" }}>Enter the course code (e.g. CS101, ACCT200, ENG102)</p>
-            <input value={courseCode} onChange={(e) => setCourseCode(e.target.value.toUpperCase())}
-              placeholder="Course code (e.g. CS101)" maxLength={20}
-              className="w-full px-3.5 py-3 rounded-xl text-sm outline-none font-mono"
-              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+            <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
+              Which course(s) did you take with {professorName}?
+            </label>
+            <p className="text-[10px] mb-3" style={{ color: "var(--text-tertiary)" }}>
+              Select from existing courses or add a new one. You can select multiple.
+            </p>
           </div>
-          <div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>Course name (optional)</label>
-            <input value={courseTitle} onChange={(e) => setCourseTitle(e.target.value)}
-              placeholder="e.g. Introduction to Computer Science"
-              className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
-              style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-          </div>
+
+          {loadingCourses && (
+            <div className="flex items-center gap-2 py-3" style={{ color: "var(--text-tertiary)" }}>
+              <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} />
+              <span className="text-xs">Loading courses...</span>
+            </div>
+          )}
+
+          {existingCourses.length > 0 && (
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
+                Previously reviewed courses
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {existingCourses.map((c) => {
+                  const selected = selectedCourseIds.includes(c.id);
+                  return (
+                    <button key={c.id} onClick={() => toggleCourse(c.id)}
+                      className="px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-[0.97]"
+                      style={selected
+                        ? { background: "var(--accent)", color: "#fff" }
+                        : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }
+                      }>
+                      {selected && <span className="mr-1">✓</span>}
+                      {c.code}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {existingCourses.length > 0 && !showAddCourse && (
+            <button onClick={() => setShowAddCourse(true)}
+              className="w-full py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] flex items-center justify-center gap-1.5"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)", border: "1px dashed var(--accent)" }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add a different course
+            </button>
+          )}
+
+          {(showAddCourse || existingCourses.length === 0) && (
+            <div className="space-y-3">
+              {existingCourses.length > 0 && (
+                <div className="h-px w-full" style={{ background: "var(--border)" }} />
+              )}
+              <label className="block text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
+                {existingCourses.length > 0 ? "New course" : "Course code"}
+              </label>
+              <input value={newCourseCode} onChange={(e) => setNewCourseCode(e.target.value.toUpperCase())}
+                placeholder="Course code (e.g. CS101)" maxLength={20}
+                className="w-full px-3.5 py-3 rounded-xl text-sm outline-none font-mono"
+                style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+              <input value={newCourseTitle} onChange={(e) => setNewCourseTitle(e.target.value)}
+                placeholder="Course name (optional)"
+                className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+                style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+            </div>
+          )}
+
+          {totalCourseCount > 0 && (
+            <div className="p-2.5 rounded-xl text-[11px] font-semibold text-center" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+              {totalCourseCount} course{totalCourseCount !== 1 ? "s" : ""} selected — your review will be submitted for {totalCourseCount === 1 ? "this course" : "each course"}
+            </div>
+          )}
         </div>
       )}
 
@@ -450,7 +560,7 @@ function RateForm() {
                 <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Submitting…
               </span>
-            ) : "Submit Review ✓"}
+            ) : totalCourseCount > 1 ? `Submit ${totalCourseCount} Reviews ✓` : "Submit Review ✓"}
           </button>
         )}
       </div>

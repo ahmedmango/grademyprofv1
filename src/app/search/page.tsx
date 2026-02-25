@@ -110,22 +110,33 @@ export default function SearchPage() {
         <div className="mb-5 animate-fade-up">
           <div className="section-label mb-2">👩‍🏫 {t(lang, "professors")} for this course</div>
           {results.course_professors.map((cp: any, i: number) => (
-            <Link key={`${cp.professor_id}-${i}`} href={`/p/${cp.professor_slug}`} onClick={() => saveRecentSearch(q.trim())}
-              className="flex items-center justify-between card-flat p-3.5 mb-2">
-              <div>
-                <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{cp.professor_name}</div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="pill">{cp.course_code}</span>
-                  <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{cp.department}</span>
+            <div key={`${cp.professor_id}-${i}`} className="card-flat p-3.5 mb-2">
+              <Link href={`/p/${cp.professor_slug}`} onClick={() => saveRecentSearch(q.trim())}
+                className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{cp.professor_name}</div>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span className="pill">{cp.course_code}</span>
+                    {cp.department && <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{cp.department}</span>}
+                    {(cp.university_short || cp.university) && (
+                      <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>· {cp.university_short || cp.university}</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              {cp.review_count > 0 && (
-                <div className="text-right">
-                  <div className={`text-lg font-extrabold font-display ${qc(cp.avg_quality)}`}>{Number(cp.avg_quality).toFixed(1)}</div>
-                  <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{cp.review_count} {t(lang, "ratings")}</div>
-                </div>
-              )}
-            </Link>
+                {cp.review_count > 0 && (
+                  <div className="text-right ml-3 shrink-0">
+                    <div className={`text-lg font-extrabold font-display ${qc(cp.avg_quality)}`}>{Number(cp.avg_quality).toFixed(1)}</div>
+                    <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{cp.review_count} {t(lang, "ratings")}</div>
+                  </div>
+                )}
+              </Link>
+              <Link href={`/rate?professorId=${cp.professor_id}&professorName=${encodeURIComponent(cp.professor_name)}&professorSlug=${cp.professor_slug}&courseId=${cp.course_id}&courseName=${encodeURIComponent(cp.course_code)}`}
+                onClick={() => saveRecentSearch(q.trim())}
+                className="inline-block mt-2 text-[11px] font-semibold px-3 py-1 rounded-lg transition-all active:scale-95"
+                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+                Rate for {cp.course_code} →
+              </Link>
+            </div>
           ))}
         </div>
       )}

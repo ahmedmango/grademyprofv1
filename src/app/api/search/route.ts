@@ -94,7 +94,9 @@ export async function GET(req: NextRequest) {
     let cpQb = supabase
       .from("professor_courses")
       .select(`courses!inner ( id, code, title_en, slug ),
-        professors!inner ( id, name_en, slug, departments ( name_en ),
+        professors!inner ( id, name_en, slug,
+          departments ( name_en ),
+          universities ( name_en, short_name, slug ),
           aggregates_professor ( avg_quality, review_count ) )`);
 
     for (const w of words) {
@@ -107,9 +109,12 @@ export async function GET(req: NextRequest) {
       const seen = new Set<string>();
       results.course_professors = data
         .map((row: any) => ({
+          course_id: row.courses?.id,
           course_code: row.courses?.code, course_slug: row.courses?.slug,
           professor_id: row.professors?.id, professor_name: row.professors?.name_en,
           professor_slug: row.professors?.slug, department: row.professors?.departments?.name_en,
+          university: row.professors?.universities?.name_en || null,
+          university_short: row.professors?.universities?.short_name || null,
           avg_quality: row.professors?.aggregates_professor?.avg_quality ?? null,
           review_count: row.professors?.aggregates_professor?.review_count ?? 0,
         }))
