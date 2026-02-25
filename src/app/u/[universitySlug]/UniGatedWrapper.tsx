@@ -26,10 +26,16 @@ export default function UniGatedWrapper(props: {
   const waitingApproval = hasSubmitted && approvedCount < 1;
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return props.professors;
-    return props.professors.filter((p: any) =>
-      smartMatch(search, p.name_en, p.departments?.name_en)
-    );
+    const list = search.trim()
+      ? props.professors.filter((p: any) => smartMatch(search, p.name_en, p.departments?.name_en))
+      : [...props.professors];
+    return list.sort((a: any, b: any) => {
+      const ac = a.aggregates_professor?.review_count ?? a.aggregates_professor?.[0]?.review_count ?? 0;
+      const bc = b.aggregates_professor?.review_count ?? b.aggregates_professor?.[0]?.review_count ?? 0;
+      if (ac > 0 && bc === 0) return -1;
+      if (ac === 0 && bc > 0) return 1;
+      return a.name_en.localeCompare(b.name_en);
+    });
   }, [search, props.professors]);
 
   return (

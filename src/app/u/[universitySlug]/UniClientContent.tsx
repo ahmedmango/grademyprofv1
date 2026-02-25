@@ -39,10 +39,16 @@ export default function UniClientContent({
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return professors;
-    return professors.filter((p: any) =>
-      smartMatch(search, p.name_en, p.departments?.name_en)
-    );
+    const list = search.trim()
+      ? professors.filter((p: any) => smartMatch(search, p.name_en, p.departments?.name_en))
+      : [...professors];
+    return list.sort((a: any, b: any) => {
+      const ac = a.aggregates_professor?.review_count ?? a.aggregates_professor?.[0]?.review_count ?? 0;
+      const bc = b.aggregates_professor?.review_count ?? b.aggregates_professor?.[0]?.review_count ?? 0;
+      if (ac > 0 && bc === 0) return -1;
+      if (ac === 0 && bc > 0) return 1;
+      return a.name_en.localeCompare(b.name_en);
+    });
   }, [search, professors]);
 
   const hasProfessors = professors.length > 0;
