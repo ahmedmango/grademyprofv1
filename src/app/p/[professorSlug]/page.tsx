@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import ProfessorGatedWrapper from "./ProfessorGatedWrapper";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 30;
 
 export default async function ProfessorPage({ params }: { params: { professorSlug: string } }) {
   const supabase = createServerClient();

@@ -125,6 +125,9 @@ export default function UniClientContent({
                         {topTags.slice(0, 3).map((tag: string) => (<TagPill key={tag} tag={tag} />))}
                       </div>
                     )}
+                    <div className="text-[10px] mt-2 font-semibold" style={{ color: "var(--accent)" }}>
+                      View ratings →
+                    </div>
                   </>
                 ) : (
                   <div className="text-[10px] mt-2 font-semibold" style={{ color: "var(--accent)" }}>

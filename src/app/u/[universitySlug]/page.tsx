@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import UniGatedWrapper from "./UniGatedWrapper";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 30;
 
 export default async function UniversityPage({ params }: { params: { universitySlug: string } }) {
   const supabase = createServerClient();
@@ -16,7 +15,8 @@ export default async function UniversityPage({ params }: { params: { universityS
   const { data: professors } = await supabase
     .from("professors")
     .select("id, name_en, slug, departments ( name_en ), aggregates_professor ( avg_quality, avg_difficulty, review_count, would_take_again_pct, top_tags )")
-    .eq("university_id", uni.id).eq("is_active", true).order("name_en");
+    .eq("university_id", uni.id).eq("is_active", true).order("name_en")
+    .limit(200);
 
   return (
     <div className="px-5 pb-10">
