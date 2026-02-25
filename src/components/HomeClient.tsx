@@ -113,13 +113,14 @@ export default function HomeClient({
         {/* Dropdown */}
         {showDropdown && (
           <div
-            className="absolute top-full left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50 animate-dropdown max-h-[60vh] overflow-y-auto"
+            className="absolute top-full left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50 animate-dropdown"
             style={{
               background: "var(--bg-surface)",
               border: "1px solid var(--border)",
               boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
             }}
           >
+          <div className="max-h-[60vh] overflow-y-auto">
             {/* Popular unis */}
             {showPopular && (
               <>
@@ -217,6 +218,7 @@ export default function HomeClient({
                 </button>
               </div>
             )}
+          </div>
           </div>
         )}
       </div>

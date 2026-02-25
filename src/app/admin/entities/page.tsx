@@ -91,22 +91,22 @@ export default function EntitiesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-brand-900">Manage Entities</h1>
+      <div className="flex items-center justify-between mb-4 sm:mb-6 gap-3">
+        <h1 className="text-lg sm:text-2xl font-bold text-brand-900">Manage Entities</h1>
         <button
           onClick={() => { setEditItem(null); setShowForm(true); }}
-          className="px-4 py-2 bg-brand-500 text-white text-sm font-medium rounded-xl hover:bg-brand-600 transition"
+          className="px-3 sm:px-4 py-2 bg-brand-500 text-white text-xs sm:text-sm font-medium rounded-xl hover:bg-brand-600 transition shrink-0"
         >
           + Add {activeTab.slice(0, -1)}
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
         {tabs.map((t) => (
           <button key={t.key}
             onClick={() => { setActiveTab(t.key); setShowForm(false); }}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
+            className={`px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition whitespace-nowrap shrink-0 ${
               activeTab === t.key ? "bg-brand-500 text-white" : "bg-white text-gray-600 border border-gray-200"
             }`}>
             {t.label}
@@ -130,8 +130,8 @@ export default function EntitiesPage() {
       {loading ? (
         <div className="text-center py-20 text-gray-400">Loading...</div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-500">Name</th>
@@ -201,6 +201,7 @@ function EntityForm({
         {type === "universities" && (
           <>
             <Input label="Name (English)" value={form.name_en || ""} onChange={(v) => set("name_en", v)} />
+            <Input label="Short Name / Abbreviation" value={form.short_name || ""} onChange={(v) => set("short_name", v)} />
             <Input label="Name (Arabic)" value={form.name_ar || ""} onChange={(v) => set("name_ar", v)} />
             <Input label="Country" value={form.country || "BH"} onChange={(v) => set("country", v)} />
           </>

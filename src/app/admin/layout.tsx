@@ -66,23 +66,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-6">
+      <nav className="bg-white border-b border-gray-200 px-4 py-3">
+        <div className="flex items-center justify-between mb-2 sm:mb-0">
           <span className="font-bold text-brand-600 text-sm">GMP Admin</span>
-          <a href="/admin" className="text-sm text-gray-600 hover:text-brand-500">Dashboard</a>
-          <a href="/admin/moderation" className="text-sm text-gray-600 hover:text-brand-500">Moderation</a>
-          <a href="/admin/bulk-import" className="text-sm text-gray-600 hover:text-brand-500">Bulk Import</a>
-          <a href="/admin/users" className="text-sm text-gray-600 hover:text-brand-500">Users</a>
-          <a href="/admin/entities" className="text-sm text-gray-600 hover:text-brand-500">Manage</a>
+          <button
+            onClick={() => { sessionStorage.clear(); setAuthed(false); }}
+            className="text-sm text-gray-400 hover:text-red-500"
+          >
+            Logout
+          </button>
         </div>
-        <button
-          onClick={() => { sessionStorage.clear(); setAuthed(false); }}
-          className="text-sm text-gray-400 hover:text-red-500"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 -mx-1 px-1 sm:gap-4 sm:mt-1">
+          {[
+            { href: "/admin", label: "Dashboard" },
+            { href: "/admin/moderation", label: "Moderation" },
+            { href: "/admin/bulk-import", label: "Import" },
+            { href: "/admin/users", label: "Users" },
+            { href: "/admin/entities", label: "Manage" },
+          ].map((link) => (
+            <a key={link.href} href={link.href}
+              className="text-xs sm:text-sm text-gray-600 hover:text-brand-500 whitespace-nowrap px-2 py-1.5 rounded-lg hover:bg-gray-50 shrink-0">
+              {link.label}
+            </a>
+          ))}
+        </div>
       </nav>
-      <main className="max-w-6xl mx-auto p-6">{children}</main>
+      <main className="max-w-6xl mx-auto p-4 sm:p-6">{children}</main>
     </div>
   );
 }
