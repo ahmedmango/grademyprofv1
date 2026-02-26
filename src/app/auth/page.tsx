@@ -8,6 +8,15 @@ import Link from "next/link";
 import AppleLogo from "@/components/AppleLogo";
 import { PasswordStrengthBar, PasswordMatchIndicator } from "@/components/PasswordStrength";
 
+const ADJS = ["blazing","cosmic","frozen","ghost","midnight","phantom","quantum","silent","solar","swift","turbo","ultra","neon","rouge","velvet"];
+const NOUNS = ["blade","coder","falcon","hawk","nova","panda","pixel","shark","storm","tiger","wolf","echo","glitch","orbit","signal"];
+function generateUsername() {
+  const a = ADJS[Math.floor(Math.random() * ADJS.length)];
+  const n = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+  const num = Math.floor(Math.random() * 90) + 10;
+  return `${a}_${n}${num}`;
+}
+
 export default function AuthPage() {
   const router = useRouter();
   const { login, register } = useUser();
@@ -132,13 +141,18 @@ export default function AuthPage() {
       <div className="space-y-4">
         {mode === "register" && (
           <div>
-            <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>
-              Username *
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>Username *</label>
+              <button type="button" onClick={() => setUsername(generateUsername())}
+                className="text-[11px] font-semibold flex items-center gap-1 px-2 py-0.5 rounded-lg transition-all active:scale-95"
+                style={{ color: "var(--accent)", background: "var(--accent-soft)" }}>
+                🎲 Generate
+              </button>
+            </div>
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))}
-              placeholder="e.g. student_uob"
+              placeholder="e.g. ghost_hawk42"
               maxLength={20}
               className="w-full px-3.5 py-3 rounded-xl text-sm outline-none transition-all"
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}

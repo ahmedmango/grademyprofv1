@@ -45,7 +45,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = sessionStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) setUser(JSON.parse(saved));
     } catch {}
     setLoading(false);
@@ -61,7 +61,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (res.ok && data.success) {
         setUser(data.user);
-        try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data.user)); } catch {}
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user)); } catch {}
         return { success: true };
       }
       return { success: false, error: data.error || "Login failed" };
@@ -80,7 +80,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (res.ok && data.success) {
         setUser(data.user);
-        try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(data.user)); } catch {}
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user)); } catch {}
         return { success: true };
       }
       return { success: false, error: data.error || "Registration failed" };
@@ -91,7 +91,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    try { sessionStorage.removeItem(STORAGE_KEY); } catch {}
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
   };
 
   return (

@@ -26,7 +26,8 @@ export default function RateButton({
 
     if (courses.length === 1 || courseId) {
       const cId = courseId || courses[0].id;
-      const cName = courseName || `${courses[0].code} ${courses[0].title_en}`;
+      const c0 = courses[0];
+      const cName = courseName || (c0.title_en && c0.title_en !== c0.code ? `${c0.code} ${c0.title_en}` : c0.code);
       router.push(`/rate?professorId=${professorId}&courseId=${cId}&professorName=${encodeURIComponent(professorName)}&courseName=${encodeURIComponent(cName)}&professorSlug=${professorSlug}`);
       return;
     }
@@ -57,7 +58,7 @@ export default function RateButton({
                   key={c.id}
                   onClick={() => {
                     setShowPicker(false);
-                    handleRate(c.id, `${c.code} ${c.title_en}`);
+                    handleRate(c.id, c.title_en && c.title_en !== c.code ? `${c.code} ${c.title_en}` : c.code);
                   }}
                   className="w-full text-left p-3.5 rounded-xl transition-all duration-150 active:scale-[0.98]"
                   style={{ background: "var(--bg-surface-alt)", border: "1px solid var(--border)" }}

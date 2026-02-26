@@ -10,6 +10,15 @@ import { validateUsername, validateEmail, validatePassword } from "@/lib/validat
 import { VALID_TAGS } from "@/lib/constants";
 import { PasswordStrengthBar, PasswordMatchIndicator } from "@/components/PasswordStrength";
 
+const ADJS = ["blazing","cosmic","frozen","ghost","midnight","phantom","quantum","silent","solar","swift","turbo","ultra","neon","rouge","velvet"];
+const NOUNS = ["blade","coder","falcon","hawk","nova","panda","pixel","shark","storm","tiger","wolf","echo","glitch","orbit","signal"];
+function generateUsername() {
+  const a = ADJS[Math.floor(Math.random() * ADJS.length)];
+  const n = NOUNS[Math.floor(Math.random() * NOUNS.length)];
+  const num = Math.floor(Math.random() * 90) + 10;
+  return `${a}_${n}${num}`;
+}
+
 const LETTER_GRADES = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "F", "W"];
 const CLASSIFICATION_GRADES = ["Distinction", "Merit", "Credit", "Pass", "Fail"];
 
@@ -33,10 +42,10 @@ function RateForm() {
   const [showAddCourse, setShowAddCourse] = useState(false);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const hasCoursePreselected = !!preselectedCourseId;
-  const [step, setStep] = useState(hasCoursePreselected ? 2 : 1);
+  const [step, setStep] = useState(1);
 
   useEffect(() => {
-    if (!professorId || hasCoursePreselected) return;
+    if (!professorId) return;
     setLoadingCourses(true);
     fetch(`/api/professor-courses?professorId=${professorId}`)
       .then((r) => r.json())
@@ -88,11 +97,8 @@ function RateForm() {
     return () => clearTimeout(usernameTimer.current);
   }, [username]);
 
-  const stepOffset = hasCoursePreselected ? 1 : 0;
   const maxStep = user ? 4 : 5;
-  const displayTotal = maxStep - stepOffset;
-  const displayStep = Math.min(step - stepOffset, displayTotal);
-  const displayProgress = displayStep / displayTotal;
+  const displayProgress = step / maxStep;
 
   const toggleTag = (tag: string) => {
     setTags((prev) =>
@@ -137,12 +143,12 @@ function RateForm() {
           confirm_password: confirmPassword, accepted_terms: acceptedTerms, anon_user_hash: anonHash,
         });
         if (!result.success) { setError(result.error || "Registration failed"); setSubmitting(false); return; }
-        const saved = sessionStorage.getItem("gmp_user");
+        const saved = localStorage.getItem("gmp_user");
         if (saved) userId = JSON.parse(saved).id;
       } else {
         const result = await login(email.trim(), password);
         if (!result.success) { setError(result.error || "Login failed"); setSubmitting(false); return; }
-        const saved = sessionStorage.getItem("gmp_user");
+        const saved = localStorage.getItem("gmp_user");
         if (saved) userId = JSON.parse(saved).id;
       }
     }
@@ -268,7 +274,7 @@ function RateForm() {
     <div className="px-5 pb-10 rate-form-container">
       {/* Header */}
       <div className="pt-4 mb-5 flex items-center gap-3">
-        <button onClick={() => step > (hasCoursePreselected ? 2 : 1) ? setStep(step - 1) : router.back()}
+        <button onClick={() => step > 1 ? setStep(step - 1) : router.back()}
           className="w-10 h-10 flex items-center justify-center rounded-xl text-lg transition-all duration-150 active:scale-90" style={{ color: "var(--accent)" }}>←</button>
         <div className="flex-1">
           <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{professorName}</div>
@@ -278,7 +284,7 @@ function RateForm() {
             </div>
           )}
         </div>
-        <div className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>Step {displayStep}/{displayTotal}</div>
+        <div className="text-xs font-medium" style={{ color: "var(--text-tertiary)" }}>Step {step}/{maxStep}</div>
       </div>
 
       <div className="h-1 rounded-full mb-6" style={{ background: "var(--border)" }}>
@@ -481,8 +487,15 @@ function RateForm() {
 
           {authMode === "register" && (
             <div>
-              <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Username *</label>
-              <input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="e.g. student_uob" maxLength={20}
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>Username *</label>
+                <button type="button" onClick={() => setUsername(generateUsername())}
+                  className="text-[11px] font-semibold flex items-center gap-1 px-2 py-0.5 rounded-lg transition-all active:scale-95"
+                  style={{ color: "var(--accent)", background: "var(--accent-soft)" }}>
+                  🎲 Generate
+                </button>
+              </div>
+              <input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="e.g. ghost_hawk42" maxLength={20}
                 className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               <div className="flex items-center gap-1 mt-1">
@@ -545,7 +558,7 @@ function RateForm() {
 
       {/* Navigation */}
       <div className="mt-8 flex gap-3">
-        {step > (hasCoursePreselected ? 2 : 1) && (
+        {step > 1 && (
           <button onClick={() => { setStep(step - 1); setError(""); }} className="flex-1 py-3 rounded-xl text-sm font-semibold card-flat">Back</button>
         )}
         {step < maxStep ? (
