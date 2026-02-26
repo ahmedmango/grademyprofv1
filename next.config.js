@@ -1,3 +1,6 @@
+// @ts-check
+const { withSentryConfig } = require("@sentry/nextjs");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
@@ -29,4 +32,16 @@ const nextConfig = {
     ];
   },
 };
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  // Suppress noisy Sentry build output
+  silent: true,
+  // Upload source maps to Sentry for readable stack traces in prod
+  // Requires SENTRY_AUTH_TOKEN env var (set in Vercel, not committed)
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  // Automatically tree-shake Sentry logger statements in prod
+  disableLogger: true,
+  // Don't widen the CSP to include Sentry's tunnel — we handle CSP manually
+  autoInstrumentServerFunctions: true,
+  autoInstrumentAppDirectory: true,
+});
