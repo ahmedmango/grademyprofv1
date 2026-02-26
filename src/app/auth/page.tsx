@@ -154,7 +154,7 @@ export default function AuthPage() {
               onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))}
               placeholder="e.g. ghost_hawk42"
               maxLength={20}
-              className="w-full px-3.5 py-3 rounded-xl text-sm outline-none transition-all"
+              className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none transition-all"
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
             />
             <div className="flex items-center gap-1 mt-1">
@@ -187,7 +187,7 @@ export default function AuthPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder={mode === "login" ? "Username or email" : "your@email.com"}
-            className="w-full px-3.5 py-3 rounded-xl text-sm outline-none transition-all"
+            className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none transition-all"
             style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
           />
         </div>
@@ -201,7 +201,7 @@ export default function AuthPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="At least 6 characters"
-            className="w-full px-3.5 py-3 rounded-xl text-sm outline-none transition-all"
+            className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none transition-all"
             style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
           />
           {mode === "register" && <PasswordStrengthBar password={password} />}
@@ -218,7 +218,7 @@ export default function AuthPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter your password"
-                className="w-full px-3.5 py-3 rounded-xl text-sm outline-none transition-all"
+                className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none transition-all"
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
               />
               <PasswordMatchIndicator password={password} confirm={confirmPassword} />

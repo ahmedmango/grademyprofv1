@@ -232,14 +232,14 @@ function SuggestForm() {
                   <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Name (English) *</label>
                   <div className="flex gap-2">
                     <select value={p.prefix} onChange={(e) => updateProf(idx, "prefix", e.target.value)}
-                      className="px-2.5 py-3 rounded-xl text-sm outline-none shrink-0"
+                      className="px-2.5 py-3 rounded-xl text-[16px] outline-none shrink-0"
                       style={{ background: "var(--bg-surface-alt)", border: "1px solid var(--border)", color: "var(--text-primary)", minWidth: "72px" }}>
                       <option value="">Title</option>
                       {PREFIXES.filter(Boolean).map((pf) => <option key={pf} value={pf}>{pf}</option>)}
                     </select>
                     <input value={p.nameEn} onChange={(e) => updateProf(idx, "nameEn", e.target.value)} placeholder="Full name (e.g. Sager Al Khalifa)"
                       autoFocus
-                      className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+                      className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
                       style={{ background: "var(--bg-surface-alt)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
                   </div>
                   <p className="text-[10px] mt-1" style={{ color: "var(--text-tertiary)" }}>Select a title if you know it (optional)</p>
@@ -247,7 +247,7 @@ function SuggestForm() {
                 <div>
                   <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Name (Arabic) — optional</label>
                   <input value={p.nameAr} onChange={(e) => updateProf(idx, "nameAr", e.target.value)} placeholder="الاسم بالعربي" dir="rtl"
-                    className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+                    className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
                     style={{ background: "var(--bg-surface-alt)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
                 </div>
               </div>
@@ -289,20 +289,20 @@ function SuggestForm() {
         <div>
           <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Name (English) *</label>
           <input value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder={placeholder}
-            className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+            className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
             style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
         </div>
         <div>
           <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Name (Arabic) — optional</label>
           <input value={nameAr} onChange={(e) => setNameAr(e.target.value)} placeholder="الاسم بالعربي" dir="rtl"
-            className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+            className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
             style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
         </div>
         {type === "course" && (
           <div>
             <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Course Code *</label>
             <input value={extra} onChange={(e) => setExtra(e.target.value.toUpperCase())} placeholder="e.g. CS101"
-              className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+              className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
           </div>
         )}

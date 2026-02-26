@@ -355,11 +355,11 @@ function RateForm() {
               </label>
               <input value={newCourseCode} onChange={(e) => setNewCourseCode(e.target.value)}
                 placeholder="Code or name (e.g. CS101 or Intro to CS)" maxLength={50}
-                className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+                className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               <input value={newCourseTitle} onChange={(e) => setNewCourseTitle(e.target.value)}
                 placeholder="Full course name (optional)"
-                className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+                className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
             </div>
           )}
@@ -496,7 +496,7 @@ function RateForm() {
                 </button>
               </div>
               <input value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))} placeholder="e.g. ghost_hawk42" maxLength={20}
-                className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+                className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               <div className="flex items-center gap-1 mt-1">
                 {checkingUsername && username.length >= 3 && (
@@ -522,14 +522,14 @@ function RateForm() {
           <div>
             <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>{authMode === "login" ? "Username or Email *" : "Email *"}</label>
             <input type={authMode === "login" ? "text" : "email"} value={email} onChange={(e) => setEmail(e.target.value)} placeholder={authMode === "login" ? "Username or email" : "your@email.com"}
-              className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+              className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
           </div>
 
           <div>
             <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Password *</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters"
-              className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+              className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
             {authMode === "register" && <PasswordStrengthBar password={password} />}
           </div>
@@ -539,7 +539,7 @@ function RateForm() {
               <div>
                 <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Confirm Password *</label>
                 <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Re-enter password"
-                  className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+                  className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
                   style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
                 <PasswordMatchIndicator password={password} confirm={confirmPassword} />
               </div>

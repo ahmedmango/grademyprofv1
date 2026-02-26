@@ -98,7 +98,7 @@ export default function HomeClient({
             onFocus={() => setFocused(true)}
             placeholder={lang === "ar" ? "ابحث عن جامعتك..." : "Search for your university..."}
             autoCorrect="off" autoCapitalize="off" spellCheck={false}
-            className="flex-1 bg-transparent text-sm outline-none"
+            className="flex-1 bg-transparent text-[16px] outline-none"
             style={{ color: "var(--text-primary)" }}
           />
           {query && (
