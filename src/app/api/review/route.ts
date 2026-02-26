@@ -27,6 +27,13 @@ export async function POST(req: NextRequest) {
 
     if (!professor_id || !course_id || !rating_quality || !rating_difficulty)
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: NO_STORE_HEADERS });
+
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(professor_id))
+      return NextResponse.json({ error: "Invalid professor_id" }, { status: 400, headers: NO_STORE_HEADERS });
+    if (!UUID_RE.test(course_id))
+      return NextResponse.json({ error: "Invalid course_id" }, { status: 400, headers: NO_STORE_HEADERS });
+
     if (!anonUserHash || anonUserHash.length < 8)
       return NextResponse.json({ error: "Invalid identity token" }, { status: 400, headers: NO_STORE_HEADERS });
 
@@ -170,8 +177,9 @@ export async function PUT(req: NextRequest) {
 
     const { review_id, rating_quality, rating_difficulty, would_take_again, grade_received, tags, comment } = body;
 
-    if (!review_id)
-      return NextResponse.json({ error: "Missing review ID" }, { status: 400, headers: NO_STORE_HEADERS });
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!review_id || !UUID_RE.test(review_id))
+      return NextResponse.json({ error: "Invalid review ID" }, { status: 400, headers: NO_STORE_HEADERS });
 
     const { data: existing } = await supabase.from("reviews")
       .select("id, professor_id, anon_user_hash, status")

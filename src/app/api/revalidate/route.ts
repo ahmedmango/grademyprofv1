@@ -7,6 +7,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { paths, secret } = body;
 
+    const expectedSecret = process.env.ADMIN_SECRET;
+    if (!expectedSecret || secret !== expectedSecret)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS });
+
     const resolved = paths && Array.isArray(paths) ? paths : ["/"];
     if (paths && Array.isArray(paths)) {
       for (const path of paths) {

@@ -126,6 +126,10 @@ export async function POST(req: NextRequest) {
       if (!professor_id || !course_id) {
         return NextResponse.json({ error: "professor_id and course_id required" }, { status: 400, headers: NO_STORE_HEADERS });
       }
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_RE.test(professor_id) || !UUID_RE.test(course_id)) {
+        return NextResponse.json({ error: "Invalid professor_id or course_id" }, { status: 400, headers: NO_STORE_HEADERS });
+      }
 
       await supabase
         .from("professor_courses")

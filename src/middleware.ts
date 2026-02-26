@@ -42,7 +42,7 @@ export function middleware(req: NextRequest) {
   if (pathname.startsWith("/api/")) {
     const ua = req.headers.get("user-agent") || "";
 
-    if (pathname === "/api/review" || pathname === "/api/report" || pathname === "/api/suggest") {
+    if (pathname === "/api/review" || pathname === "/api/report" || pathname === "/api/suggest" || pathname === "/api/revalidate") {
       if (!ua || ua.length < 5 || /^(curl|wget|python-requests|Go-http|httpie|postman)/i.test(ua)) {
         return NextResponse.json({ error: "Request blocked" }, { status: 403 });
       }

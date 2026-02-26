@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  poweredBy: false,
+  poweredByHeader: false,
   images: { domains: [] },
   async headers() {
     const isDev = process.env.NODE_ENV === "development";

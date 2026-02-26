@@ -8,6 +8,8 @@ export async function POST(req: NextRequest) {
   try {
     const { review_id, reason, detail } = await req.json();
     if (!review_id || !reason) return NextResponse.json({ error: "Missing review_id or reason" }, { status: 400, headers: NO_STORE_HEADERS });
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!UUID_RE.test(review_id)) return NextResponse.json({ error: "Invalid review_id" }, { status: 400, headers: NO_STORE_HEADERS });
     if (!VALID_REASONS.includes(reason)) return NextResponse.json({ error: "Invalid reason" }, { status: 400, headers: NO_STORE_HEADERS });
 
     const supabase = createServiceClient();
