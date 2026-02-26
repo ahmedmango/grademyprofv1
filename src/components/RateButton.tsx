@@ -73,8 +73,7 @@ export default function RateButton({
       )}
 
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg px-5 pt-3 z-50"
-        style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom))" }}
-        style={{ background: "linear-gradient(transparent, var(--bg-page) 30%)" }}>
+        style={{ background: "linear-gradient(transparent, var(--bg-page) 30%)", paddingBottom: "max(24px, env(safe-area-inset-bottom))" }}>
         <button
           onClick={() => handleRate()}
           className="block w-full py-4 rounded-2xl text-white text-center font-bold text-base transition-all duration-200 active:scale-[0.97]"
