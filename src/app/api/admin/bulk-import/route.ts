@@ -70,12 +70,14 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === "check") {
-    // Load existing professors (name + university) for duplicate detection
-    const { data: existingProfs } = await supabase.from("professors").select("name_en, university_id");
+    // Load existing professors (name + university + slug) for duplicate detection
+    const { data: existingProfs } = await supabase.from("professors").select("name_en, university_id, slug");
 
-    // Build two maps per university: exact and possible
+    // Build two maps per university: exact and possible name matches
     const dbExact = new Map<string, Map<string, string>>(); // uniId → normalizedName → original name
     const dbPossible = new Map<string, Map<string, string>>();
+    // Global slug map for catching slug-level conflicts (DB has a global unique constraint on slug)
+    const dbSlugs = new Map<string, string>(); // slug → name_en
 
     for (const p of existingProfs || []) {
       if (!p.university_id) continue;
@@ -83,12 +85,14 @@ export async function POST(req: NextRequest) {
       if (!dbPossible.has(p.university_id)) dbPossible.set(p.university_id, new Map());
       dbExact.get(p.university_id)!.set(normalizeExact(p.name_en), p.name_en);
       dbPossible.get(p.university_id)!.set(normalizePossible(p.name_en), p.name_en);
+      if (p.slug) dbSlugs.set(p.slug, p.name_en);
     }
 
     const checked: CheckedRow[] = [];
     // Within-import tracking: only "new" rows seed these sets
     const importExact = new Map<string, Map<string, string>>();
     const importPossible = new Map<string, Map<string, string>>();
+    const importSlugs = new Map<string, string>(); // slug → name_en (global, like the DB constraint)
 
     const counts = { new: 0, possible: 0, exact: 0, errors: 0 };
 
@@ -117,8 +121,9 @@ export async function POST(req: NextRequest) {
 
       const exactKey = normalizeExact(name);
       const possibleKey = normalizePossible(name);
+      const slug = slugify(name);
 
-      // Check against DB exact
+      // Check against DB exact name
       const dbExactForUni = dbExact.get(universityId);
       if (dbExactForUni?.has(exactKey)) {
         checked.push({ ...row, index: i, university_id: universityId, department_id: departmentId, category: "exact", conflict_with: dbExactForUni.get(exactKey) });
@@ -126,7 +131,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Check against DB possible
+      // Check against DB possible name
       const dbPossibleForUni = dbPossible.get(universityId);
       if (dbPossibleForUni?.has(possibleKey)) {
         checked.push({ ...row, index: i, university_id: universityId, department_id: departmentId, category: "possible", conflict_with: dbPossibleForUni.get(possibleKey) });
@@ -134,7 +139,7 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Check within-import exact
+      // Check within-import exact name
       const importExactForUni = importExact.get(universityId);
       if (importExactForUni?.has(exactKey)) {
         checked.push({ ...row, index: i, university_id: universityId, department_id: departmentId, category: "exact", conflict_with: `${importExactForUni.get(exactKey)} (earlier row)` });
@@ -142,11 +147,23 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Check within-import possible
+      // Check within-import possible name
       const importPossibleForUni = importPossible.get(universityId);
       if (importPossibleForUni?.has(possibleKey)) {
         checked.push({ ...row, index: i, university_id: universityId, department_id: departmentId, category: "possible", conflict_with: `${importPossibleForUni.get(possibleKey)} (earlier row)` });
         counts.possible++;
+        continue;
+      }
+
+      // Check global slug collision (DB has a global UNIQUE constraint on slug)
+      if (dbSlugs.has(slug)) {
+        checked.push({ ...row, index: i, university_id: universityId, department_id: departmentId, category: "exact", conflict_with: `${dbSlugs.get(slug)} (slug conflict)` });
+        counts.exact++;
+        continue;
+      }
+      if (importSlugs.has(slug)) {
+        checked.push({ ...row, index: i, university_id: universityId, department_id: departmentId, category: "exact", conflict_with: `${importSlugs.get(slug)} (slug conflict, earlier row)` });
+        counts.exact++;
         continue;
       }
 
@@ -155,6 +172,7 @@ export async function POST(req: NextRequest) {
       if (!importPossible.has(universityId)) importPossible.set(universityId, new Map());
       importExact.get(universityId)!.set(exactKey, name);
       importPossible.get(universityId)!.set(possibleKey, name);
+      importSlugs.set(slug, name);
 
       checked.push({ ...row, index: i, university_id: universityId, department_id: departmentId, category: "new" });
       counts.new++;
@@ -164,8 +182,9 @@ export async function POST(req: NextRequest) {
   }
 
   // Import action (default) — slug-based dedup as final safety net
-  const { data: existingProfs } = await supabase.from("professors").select("slug, university_id");
-  const existingSlugs = new Set((existingProfs || []).map((p) => `${p.university_id}:${p.slug}`));
+  // DB has a global UNIQUE constraint on slug (professors_slug_key), so dedup globally
+  const { data: existingProfs } = await supabase.from("professors").select("slug");
+  const existingSlugs = new Set((existingProfs || []).map((p) => p.slug));
 
   const results: Result[] = [];
   const toInsert: {
@@ -194,9 +213,8 @@ export async function POST(req: NextRequest) {
     }
 
     const slug = slugify(name);
-    const dedupKey = `${universityId}:${slug}`;
 
-    if (existingSlugs.has(dedupKey)) {
+    if (existingSlugs.has(slug)) {
       results.push({ row: i + 1, name, university: row.university, status: "skipped", detail: "Already exists" });
       continue;
     }
@@ -209,7 +227,7 @@ export async function POST(req: NextRequest) {
       departmentId = deptMap.get(`${universityId}:${row.department.toLowerCase().trim()}`) || null;
     }
 
-    existingSlugs.add(dedupKey);
+    existingSlugs.add(slug);
     toInsert.push({
       name_en: name,
       name_ar: row.name_ar?.trim() || null,
