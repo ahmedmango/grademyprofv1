@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   const supabase = createServiceClient();
   const { data: reviews, error } = await supabase.from("reviews")
-    .select(`id, rating_quality, rating_difficulty, would_take_again, tags, comment, status, created_at, semester_window,
+    .select(`id, professor_id, course_id, rating_quality, rating_difficulty, would_take_again, grade_received, tags, comment, status, created_at, semester_window,
       professors ( name_en, slug ), courses ( code, title_en ), universities ( name_en )`)
     .eq("anon_user_hash", anonUserHash)
     .order("created_at", { ascending: false }).limit(50);

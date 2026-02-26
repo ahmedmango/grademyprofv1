@@ -4,7 +4,8 @@ import { useState, Suspense, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
-type ProfEntry = { nameEn: string; nameAr: string };
+type ProfEntry = { prefix: string; nameEn: string; nameAr: string };
+const PREFIXES = ["", "Dr.", "Prof.", "Mr.", "Ms.", "Mrs.", "Eng."];
 
 function SuggestForm() {
   const searchParams = useSearchParams();
@@ -14,7 +15,7 @@ function SuggestForm() {
   const universityName = searchParams.get("universityName") || "";
 
   // --- Multi-professor state ---
-  const [professors, setProfessors] = useState<ProfEntry[]>([{ nameEn: "", nameAr: "" }]);
+  const [professors, setProfessors] = useState<ProfEntry[]>([{ prefix: "", nameEn: "", nameAr: "" }]);
   const [activeIdx, setActiveIdx] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +45,7 @@ function SuggestForm() {
       return;
     }
     setError("");
-    setProfessors((prev) => [...prev, { nameEn: "", nameAr: "" }]);
+    setProfessors((prev) => [...prev, { prefix: "", nameEn: "", nameAr: "" }]);
     setActiveIdx(professors.length);
   };
 
@@ -65,26 +66,27 @@ function SuggestForm() {
     let okCount = 0;
 
     for (const p of valid) {
+      const fullName = p.prefix ? `${p.prefix} ${p.nameEn.trim()}` : p.nameEn.trim();
       try {
         const resp = await fetch("/api/suggest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             type: "professor",
-            name_en: p.nameEn.trim(),
+            name_en: fullName,
             name_ar: p.nameAr.trim() || undefined,
             university_id: universityId || undefined,
           }),
         });
         const data = await resp.json();
         if (resp.ok) {
-          res.push({ name: p.nameEn.trim(), ok: true, msg: "Added" });
+          res.push({ name: fullName, ok: true, msg: "Added" });
           okCount++;
         } else {
-          res.push({ name: p.nameEn.trim(), ok: false, msg: data.error || "Failed" });
+          res.push({ name: fullName, ok: false, msg: data.error || "Failed" });
         }
       } catch {
-        res.push({ name: p.nameEn.trim(), ok: false, msg: "Connection failed" });
+        res.push({ name: fullName, ok: false, msg: "Connection failed" });
       }
     }
 
@@ -197,7 +199,7 @@ function SuggestForm() {
                     )}
                   </div>
                   <span className="flex-1 text-sm font-semibold truncate" style={{ color: hasName ? "var(--text-primary)" : "var(--text-tertiary)" }}>
-                    {p.nameEn.trim() || "Untitled professor"}
+                    {p.prefix ? `${p.prefix} ` : ""}{p.nameEn.trim() || "Untitled professor"}
                   </span>
                   {professors.length > 1 && (
                     <button onClick={(e) => { e.stopPropagation(); removeProf(idx); }}
@@ -228,10 +230,19 @@ function SuggestForm() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Name (English) *</label>
-                  <input value={p.nameEn} onChange={(e) => updateProf(idx, "nameEn", e.target.value)} placeholder={placeholder}
-                    autoFocus
-                    className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
-                    style={{ background: "var(--bg-surface-alt)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                  <div className="flex gap-2">
+                    <select value={p.prefix} onChange={(e) => updateProf(idx, "prefix", e.target.value)}
+                      className="px-2.5 py-3 rounded-xl text-sm outline-none shrink-0"
+                      style={{ background: "var(--bg-surface-alt)", border: "1px solid var(--border)", color: "var(--text-primary)", minWidth: "72px" }}>
+                      <option value="">Title</option>
+                      {PREFIXES.filter(Boolean).map((pf) => <option key={pf} value={pf}>{pf}</option>)}
+                    </select>
+                    <input value={p.nameEn} onChange={(e) => updateProf(idx, "nameEn", e.target.value)} placeholder="Full name (e.g. Sager Al Khalifa)"
+                      autoFocus
+                      className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
+                      style={{ background: "var(--bg-surface-alt)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+                  </div>
+                  <p className="text-[10px] mt-1" style={{ color: "var(--text-tertiary)" }}>Select a title if you know it (optional)</p>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold mb-1.5" style={{ color: "var(--text-secondary)" }}>Name (Arabic) — optional</label>

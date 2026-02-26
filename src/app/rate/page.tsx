@@ -11,7 +11,7 @@ import { VALID_TAGS } from "@/lib/constants";
 import { PasswordStrengthBar, PasswordMatchIndicator } from "@/components/PasswordStrength";
 
 const LETTER_GRADES = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "F", "W"];
-const CLASSIFICATION_GRADES = ["Distinction", "Merit", "Pass", "Fail"];
+const CLASSIFICATION_GRADES = ["Distinction", "Merit", "Credit", "Pass", "Fail"];
 
 function RateForm() {
   const searchParams = useSearchParams();
@@ -261,7 +261,8 @@ function RateForm() {
     );
   }
 
-  const ratingLabel = (v: number) => v <= 1 ? "Awful" : v <= 2 ? "Poor" : v <= 3 ? "OK" : v <= 4 ? "Good" : "Amazing";
+  const qualityLabel = (v: number) => v <= 1 ? "Awful" : v <= 2 ? "Poor" : v <= 3 ? "OK" : v <= 4 ? "Good" : "Amazing";
+  const difficultyLabel = (v: number) => v <= 1 ? "Very Easy" : v <= 2 ? "Easy" : v <= 3 ? "Medium" : v <= 4 ? "Hard" : "Very Difficult";
 
   return (
     <div className="px-5 pb-10 rate-form-container">
@@ -344,14 +345,14 @@ function RateForm() {
                 <div className="h-px w-full" style={{ background: "var(--border)" }} />
               )}
               <label className="block text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
-                {existingCourses.length > 0 ? "New course" : "Course code"}
+                {existingCourses.length > 0 ? "New course" : "Course code or name"}
               </label>
-              <input value={newCourseCode} onChange={(e) => setNewCourseCode(e.target.value.toUpperCase())}
-                placeholder="Course code (e.g. CS101)" maxLength={20}
-                className="w-full px-3.5 py-3 rounded-xl text-sm outline-none font-mono"
+              <input value={newCourseCode} onChange={(e) => setNewCourseCode(e.target.value)}
+                placeholder="Code or name (e.g. CS101 or Intro to CS)" maxLength={50}
+                className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
               <input value={newCourseTitle} onChange={(e) => setNewCourseTitle(e.target.value)}
-                placeholder="Course name (optional)"
+                placeholder="Full course name (optional)"
                 className="w-full px-3.5 py-3 rounded-xl text-sm outline-none"
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
             </div>
@@ -369,7 +370,7 @@ function RateForm() {
       {step === 2 && (
         <div className="space-y-6 animate-fade-up">
           <div>
-            <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Quality Rating * {quality > 0 && <span style={{ color: "var(--accent)" }}>— {ratingLabel(quality)}</span>}</label>
+            <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Quality Rating * {quality > 0 && <span style={{ color: "var(--accent)" }}>— {qualityLabel(quality)}</span>}</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((v) => (
                 <button key={v} onClick={() => setQuality(v)} className="flex-1 py-3 rounded-xl text-sm font-bold transition-all"
@@ -378,7 +379,7 @@ function RateForm() {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Difficulty Rating * {difficulty > 0 && <span style={{ color: "var(--accent)" }}>— {ratingLabel(difficulty)}</span>}</label>
+            <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Difficulty Rating * {difficulty > 0 && <span style={{ color: "var(--accent)" }}>— {difficultyLabel(difficulty)}</span>}</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((v) => (
                 <button key={v} onClick={() => setDifficulty(v)} className="flex-1 py-3 rounded-xl text-sm font-bold transition-all"

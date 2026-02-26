@@ -14,7 +14,7 @@ export default async function UniversityPage({ params }: { params: { universityS
 
   const { data: professors } = await supabase
     .from("professors")
-    .select("id, name_en, slug, departments ( name_en ), aggregates_professor ( avg_quality, avg_difficulty, review_count, would_take_again_pct, top_tags )")
+    .select("id, name_en, slug, departments ( name_en ), aggregates_professor ( avg_quality, avg_difficulty, review_count, would_take_again_pct, top_tags ), professor_courses ( courses ( code ) )")
     .eq("university_id", uni.id).eq("is_active", true).order("name_en")
     .limit(200);
 

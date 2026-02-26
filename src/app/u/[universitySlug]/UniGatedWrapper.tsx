@@ -25,16 +25,27 @@ export default function UniGatedWrapper(props: {
   const hasSubmitted = reviewCount > 0;
   const waitingApproval = hasSubmitted && approvedCount < 1;
 
+  const getSurname = (name: string) => {
+    const parts = name.replace(/^(Dr\.|Prof\.|Mr\.|Ms\.|Mrs\.|Eng\.)\s*/i, "").trim().split(/\s+/);
+    return parts[parts.length - 1] || name;
+  };
+
+  const getCourseCodes = (p: any): string => {
+    const pc = p.professor_courses;
+    if (!pc || !Array.isArray(pc)) return "";
+    return pc.map((link: any) => link.courses?.code || "").filter(Boolean).join(" ");
+  };
+
   const filtered = useMemo(() => {
     const list = search.trim()
-      ? props.professors.filter((p: any) => smartMatch(search, p.name_en, p.departments?.name_en))
+      ? props.professors.filter((p: any) => smartMatch(search, p.name_en, p.departments?.name_en, getCourseCodes(p)))
       : [...props.professors];
     return list.sort((a: any, b: any) => {
       const ac = a.aggregates_professor?.review_count ?? a.aggregates_professor?.[0]?.review_count ?? 0;
       const bc = b.aggregates_professor?.review_count ?? b.aggregates_professor?.[0]?.review_count ?? 0;
       if (ac > 0 && bc === 0) return -1;
       if (ac === 0 && bc > 0) return 1;
-      return a.name_en.localeCompare(b.name_en);
+      return getSurname(a.name_en).localeCompare(getSurname(b.name_en));
     });
   }, [search, props.professors]);
 
@@ -76,7 +87,7 @@ export default function UniGatedWrapper(props: {
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
         <input value={search} onChange={(e) => setSearch(e.target.value)}
-          placeholder={`Search professors at ${props.uniShortName || props.uniName}...`}
+          placeholder={`Search by name or course code at ${props.uniShortName || props.uniName}...`}
           className="w-full pl-10 pr-4 py-3 rounded-xl text-xs outline-none transition-all"
           style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
       </div>
