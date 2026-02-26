@@ -21,7 +21,7 @@ const DOXXING_PATTERNS = [
 
 const DEFAMATION_PATTERNS = [
   /\b(he|she|they)\s+(is|are)\s+(a\s+)?(racist|sexist|harasser|predator|criminal|thief|corrupt)\b/i,
-  /\bsexual\s+(harass|assault|abuse)/i,
+  /\bsexual(?:ly)?\s+(harass|assault|abuse)/i,
   /\b(corrupt|brib|steal|embezzl|fraud)/i,
   /\b(affair|relationship)\s+with\s+(a\s+)?student/i,
 ];
