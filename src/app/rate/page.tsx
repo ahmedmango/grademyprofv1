@@ -441,7 +441,7 @@ function RateForm() {
             <label className="block text-xs font-semibold mb-3" style={{ color: "var(--text-secondary)" }}>Tags (pick up to 3)</label>
             <div className="flex flex-wrap gap-2">
               {VALID_TAGS.map((tag) => (
-                <button key={tag} onClick={() => toggleTag(tag)} className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                <button key={tag} onClick={() => toggleTag(tag)} className="px-3 py-2 rounded-lg text-xs font-medium transition-all"
                   style={tags.includes(tag) ? { background: "var(--accent)", color: "#fff" } : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>{tag}</button>
               ))}
             </div>
@@ -478,10 +478,10 @@ function RateForm() {
 
           <div className="flex gap-1 p-1 rounded-xl" style={{ background: "var(--bg-surface-alt)" }}>
             <button onClick={() => { setAuthMode("register"); setError(""); }}
-              className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
+              className="flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all"
               style={authMode === "register" ? { background: "var(--accent)", color: "#fff" } : { color: "var(--text-secondary)" }}>New Account</button>
             <button onClick={() => { setAuthMode("login"); setError(""); }}
-              className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
+              className="flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all"
               style={authMode === "login" ? { background: "var(--accent)", color: "#fff" } : { color: "var(--text-secondary)" }}>I have an account</button>
           </div>
 
@@ -490,7 +490,7 @@ function RateForm() {
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>Username *</label>
                 <button type="button" onClick={() => setUsername(generateUsername())}
-                  className="text-[11px] font-semibold flex items-center gap-1 px-2 py-0.5 rounded-lg transition-all active:scale-95"
+                  className="text-[11px] font-semibold flex items-center gap-1 px-2 py-1.5 rounded-lg transition-all active:scale-95"
                   style={{ color: "var(--accent)", background: "var(--accent-soft)" }}>
                   🎲 Generate
                 </button>

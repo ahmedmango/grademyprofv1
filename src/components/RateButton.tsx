@@ -72,7 +72,8 @@ export default function RateButton({
         </div>
       )}
 
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg px-5 pb-6 pt-3 z-50"
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg px-5 pt-3 z-50"
+        style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom))" }}
         style={{ background: "linear-gradient(transparent, var(--bg-page) 30%)" }}>
         <button
           onClick={() => handleRate()}

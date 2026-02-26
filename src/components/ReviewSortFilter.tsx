@@ -26,7 +26,7 @@ export default function ReviewSortFilter({ courses, currentSort, currentCourse }
       <div className="flex gap-1.5 overflow-x-auto pb-1">
         {sorts.map((s) => (
           <button key={s.key} onClick={() => update("sort", s.key === "newest" ? null : s.key)}
-            className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition ${currentSort === s.key ? "bg-brand-500 text-white" : "bg-brand-50 text-gray-500 border border-brand-100"}`}>
+            className={`px-3 py-2 rounded-lg text-[11px] font-medium whitespace-nowrap transition ${currentSort === s.key ? "bg-brand-500 text-white" : "bg-brand-50 text-gray-500 border border-brand-100"}`}>
             {s.label}
           </button>
         ))}
@@ -34,10 +34,10 @@ export default function ReviewSortFilter({ courses, currentSort, currentCourse }
       {courses.length > 1 && (
         <div className="flex gap-1.5 overflow-x-auto pb-1">
           <button onClick={() => update("course", null)}
-            className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition ${!currentCourse ? "bg-brand-500 text-white" : "bg-brand-50 text-gray-500 border border-brand-100"}`}>All Courses</button>
+            className={`px-3 py-2 rounded-lg text-[11px] font-medium whitespace-nowrap transition ${!currentCourse ? "bg-brand-500 text-white" : "bg-brand-50 text-gray-500 border border-brand-100"}`}>All Courses</button>
           {courses.map((c) => (
             <button key={c.id} onClick={() => update("course", c.id)}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition ${currentCourse === c.id ? "bg-brand-500 text-white" : "bg-brand-50 text-gray-500 border border-brand-100"}`}>{c.code}</button>
+              className={`px-3 py-2 rounded-lg text-[11px] font-medium whitespace-nowrap transition ${currentCourse === c.id ? "bg-brand-500 text-white" : "bg-brand-50 text-gray-500 border border-brand-100"}`}>{c.code}</button>
           ))}
         </div>
       )}

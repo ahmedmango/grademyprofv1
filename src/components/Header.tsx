@@ -24,10 +24,10 @@ export default function Header() {
           {lang === "ar" ? "قيّم" : "GMP"}
         </Link>
         <nav className="flex items-center gap-3">
-          <Link href="/search" className="hidden sm:inline text-xs font-medium transition-colors hover:opacity-80" style={{ color: "var(--text-secondary)" }}>
+          <Link href="/search" className="hidden sm:inline text-xs font-medium transition-colors hover:opacity-80 px-1 py-2" style={{ color: "var(--text-secondary)" }}>
             Search
           </Link>
-          <Link href="/my-reviews" className="text-xs font-medium transition-colors hover:opacity-80" style={{ color: "var(--text-secondary)" }}>
+          <Link href="/my-reviews" className="text-xs font-medium transition-colors hover:opacity-80 px-1 py-2" style={{ color: "var(--text-secondary)" }}>
             My Reviews
           </Link>
           {user && (
@@ -42,20 +42,20 @@ export default function Header() {
         {user ? (
           <button
             onClick={logout}
-            className="text-xs font-semibold underline transition-opacity hover:opacity-80"
+            className="text-xs font-semibold underline transition-opacity hover:opacity-80 px-2 py-2"
             style={{ color: "var(--accent)" }}
           >
             Log out
           </button>
         ) : (
-          <Link href="/auth" className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95"
+          <Link href="/auth" className="px-3 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
             style={{ background: "var(--accent)", color: "#fff" }}>
             Sign in
           </Link>
         )}
 
         <button onClick={toggleLang}
-          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+          className="px-2.5 py-2 rounded-lg text-xs font-semibold transition-colors"
           style={{ background: "var(--bg-surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
           {lang === "en" ? "عربي" : "EN"}
         </button>

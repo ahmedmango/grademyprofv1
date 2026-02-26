@@ -58,10 +58,10 @@ export default function ReviewVoteButtons({
   };
 
   return (
-    <div className="flex items-center gap-3 mt-3 justify-end">
+    <div className="flex items-center gap-1 mt-3 justify-end">
       <button
         onClick={() => handleVote("up")}
-        className="flex items-center gap-1 text-xs transition-all active:scale-90"
+        className="flex items-center gap-1 text-xs transition-all active:scale-90 p-2 rounded-lg"
         style={{ color: userVote === "up" ? "var(--accent)" : "var(--text-tertiary)" }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill={userVote === "up" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -71,7 +71,7 @@ export default function ReviewVoteButtons({
       </button>
       <button
         onClick={() => handleVote("down")}
-        className="flex items-center gap-1 text-xs transition-all active:scale-90"
+        className="flex items-center gap-1 text-xs transition-all active:scale-90 p-2 rounded-lg"
         style={{ color: userVote === "down" ? "#EF4444" : "var(--text-tertiary)" }}
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill={userVote === "down" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -239,7 +239,7 @@ export default function ProfessorClientContent({
           <div className="flex gap-1.5 flex-wrap">
             {courses.map((c: any) => (
               <Link key={c.id} href={`/c/${c.slug}`}
-                className="px-2.5 py-1 rounded-lg text-xs font-medium transition-all active:scale-95"
+                className="px-2.5 py-2 rounded-lg text-xs font-medium transition-all active:scale-95"
                 style={{ background: "var(--accent-soft)", color: "var(--accent)", border: "1px solid var(--border)" }}>
                 {c.code}
               </Link>
