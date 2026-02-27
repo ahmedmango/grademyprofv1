@@ -69,14 +69,14 @@ export async function GET(req: NextRequest) {
     }));
   }
 
-  // Courses — every word must appear in code OR title_en
+  // Courses — every word must appear in code OR title_en OR title_ar
   if (type === "all" || type === "courses") {
     let qb = supabase
       .from("courses")
-      .select(`id, code, title_en, slug, universities ( name_en, slug, short_name ), departments ( name_en )`);
+      .select(`id, code, title_en, title_ar, slug, universities ( name_en, slug, short_name ), departments ( name_en )`);
 
     for (const w of words) {
-      qb = qb.or(`code.ilike.%${w}%,title_en.ilike.%${w}%`);
+      qb = qb.or(`code.ilike.%${w}%,title_en.ilike.%${w}%,title_ar.ilike.%${w}%`);
     }
 
     const { data } = await qb.order("code").limit(12);
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
           aggregates_professor ( avg_quality, review_count ) )`);
 
     for (const w of words) {
-      cpQb = cpQb.or(`code.ilike.%${w}%,title_en.ilike.%${w}%`, { referencedTable: "courses" });
+      cpQb = cpQb.or(`code.ilike.%${w}%,title_en.ilike.%${w}%,title_ar.ilike.%${w}%`, { referencedTable: "courses" });
     }
 
     const { data } = await cpQb.limit(20);

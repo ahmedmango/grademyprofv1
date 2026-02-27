@@ -165,7 +165,12 @@ export default function SearchPage() {
             <Link key={p.id} href={`/p/${p.slug}`} onClick={() => saveRecentSearch(q.trim())}
               className="flex items-center justify-between card-flat p-4 mb-2">
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{p.name_en}</div>
+                <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {lang === "ar" && p.name_ar ? p.name_ar : p.name_en}
+                </div>
+                {lang === "ar" && p.name_ar && (
+                  <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>{p.name_en}</div>
+                )}
                 <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>{p.department} · {p.university_short || p.university}</div>
                 {p.top_tags && p.top_tags.length > 0 && (
                   <div className="flex gap-1 mt-1.5">{p.top_tags.slice(0, 2).map((tag: string) => (
