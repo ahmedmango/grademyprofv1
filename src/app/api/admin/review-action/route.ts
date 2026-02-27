@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authenticateAdmin } from "@/lib/admin-auth";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
+import { sendReviewLive, sendReviewRejected } from "@/lib/email";
 
 const STATUS_MAP: Record<string, string> = { approve: "live", reject: "removed", shadow: "shadow", flag: "flagged" };
 const VALID_ACTIONS = ["approve", "reject", "shadow", "flag", "delete"];
@@ -17,7 +18,11 @@ export async function POST(req: NextRequest) {
   const supabase = createServiceClient();
   const newStatus = STATUS_MAP[action];
 
-  const { data: review } = await supabase.from("reviews").select("id, professor_id, status").eq("id", review_id).single();
+  const { data: review } = await supabase
+    .from("reviews")
+    .select("id, professor_id, status, user_id, courses ( code ), professors ( name_en )")
+    .eq("id", review_id)
+    .single();
   if (!review) return NextResponse.json({ error: "Review not found" }, { status: 404, headers: NO_STORE_HEADERS });
 
   if (action === "delete") {
@@ -36,6 +41,25 @@ export async function POST(req: NextRequest) {
 
   if (newStatus === "live" || review.status === "live") {
     await supabase.rpc("refresh_professor_aggregates", { p_professor_id: review.professor_id });
+  }
+
+  // Fire-and-forget email notification for approve/reject
+  if (review.user_id && (newStatus === "live" || newStatus === "removed")) {
+    (async () => {
+      try {
+        const { data: user } = await supabase
+          .from("user_accounts").select("email, username").eq("id", review.user_id).single();
+        if (user?.email) {
+          const profName = (review as any).professors?.name_en || "the professor";
+          const courseCode = (review as any).courses?.code || "";
+          if (newStatus === "live") {
+            await sendReviewLive(user.email, user.username, profName, courseCode);
+          } else {
+            await sendReviewRejected(user.email, user.username, profName);
+          }
+        }
+      } catch (err) { console.error("[email] review-action notify failed:", err); }
+    })();
   }
 
   return NextResponse.json({ success: true, review_id, old_status: review.status, new_status: newStatus }, { headers: NO_STORE_HEADERS });

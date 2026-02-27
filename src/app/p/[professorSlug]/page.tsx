@@ -37,8 +37,29 @@ export default async function ProfessorPage({ params }: { params: { professorSlu
     .order("created_at", { ascending: false })
     .limit(30);
 
+  const jsonLd = agg.review_count > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": prof.name_en,
+    "jobTitle": dept?.name_en || "Professor",
+    "worksFor": uni ? { "@type": "CollegeOrUniversity", "name": uni.name_en } : undefined,
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": Number(agg.avg_quality).toFixed(1),
+      "bestRating": "5",
+      "worstRating": "1",
+      "ratingCount": agg.review_count,
+    },
+  } : null;
+
   return (
     <div className="pb-28">
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
       <div className="px-5 pt-4 flex items-center gap-3 mb-4">
         <Link href={uni ? `/u/${uni.slug}` : "/"} className="w-10 h-10 flex items-center justify-center rounded-xl text-lg transition-all duration-150 active:scale-90" style={{ color: "var(--accent)" }}>←</Link>
         <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{uni?.name_en}</span>

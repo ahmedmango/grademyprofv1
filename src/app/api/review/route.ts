@@ -5,6 +5,7 @@ import { scanContent } from "@/lib/moderation";
 import { VALID_TAGS, RATE_LIMITS } from "@/lib/constants";
 import { getCurrentSemester } from "@/lib/utils";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
+import { sendReviewLive } from "@/lib/email";
 
 function hashString(str: string): string {
   let hash = 0;
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
     const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
 
     const [profResult, courseResult, userDayResult, ipHourResult, duplicateResult] = await Promise.all([
-      supabase.from("professors").select("id, university_id, slug").eq("id", professor_id).eq("is_active", true).single(),
+      supabase.from("professors").select("id, university_id, slug, name_en").eq("id", professor_id).eq("is_active", true).single(),
       supabase.from("courses").select("id").eq("id", course_id).single(),
       supabase.from("rate_limits").select("*", { count: "exact", head: true }).eq("anon_user_hash", anonUserHash).gte("created_at", oneDayAgo),
       supabase.from("rate_limits").select("*", { count: "exact", head: true }).eq("ip_hash", ipHash).gte("created_at", oneHourAgo),
@@ -124,6 +125,21 @@ export async function POST(req: NextRequest) {
 
     if (status === "live") {
       await supabase.rpc("refresh_professor_aggregates", { p_professor_id: professor_id });
+    }
+
+    // Fire-and-forget email for auto-approved reviews
+    if (status === "live" && user_id) {
+      (async () => {
+        try {
+          const { data: user } = await supabase
+            .from("user_accounts").select("email, username").eq("id", user_id).single();
+          if (user?.email) {
+            const profName = profResult.data?.name_en || "the professor";
+            const { data: course } = await supabase.from("courses").select("code").eq("id", course_id).single();
+            await sendReviewLive(user.email, user.username, profName, course?.code || "");
+          }
+        } catch (err) { console.error("[email] auto-approval notify failed:", err); }
+      })();
     }
 
     // Revalidate professor page and university page so changes appear immediately
