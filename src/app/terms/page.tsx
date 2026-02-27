@@ -6,7 +6,7 @@ export default function TermsPage() {
   return (
     <div className="px-5 pb-10 pt-8 max-w-2xl mx-auto">
       <h1 className="font-display text-2xl font-extrabold mb-1" style={{ color: "var(--text-primary)" }}>Terms of Service</h1>
-      <p className="text-xs mb-8" style={{ color: "var(--text-tertiary)" }}>Last updated: February 23, 2026</p>
+      <p className="text-xs mb-8" style={{ color: "var(--text-tertiary)" }}>Last updated: February 27, 2026</p>
 
       <div className="space-y-6 text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
         <section>
@@ -53,11 +53,13 @@ export default function TermsPage() {
         <section>
           <h2 className="font-display font-bold text-base mb-2" style={{ color: "var(--text-primary)" }}>9. Disclaimer</h2>
           <p>The Platform is provided "as is." We do not guarantee the accuracy of user-submitted reviews. Ratings reflect individual student opinions and should not be the sole basis for academic decisions.</p>
+          <p className="mt-2">GradeMyProfessor Bahrain is a neutral hosting platform. We do not author, endorse, or verify user-submitted reviews. All reviews represent the sole opinion of the individual who submitted them.</p>
         </section>
 
         <section>
           <h2 className="font-display font-bold text-base mb-2" style={{ color: "var(--text-primary)" }}>10. Limitation of Liability</h2>
           <p>To the maximum extent permitted by law, we shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Platform.</p>
+          <p className="mt-2">You agree to indemnify and hold harmless GradeMyProfessor Bahrain, its operators, and affiliates from any claims, damages, or legal costs arising from content you submit to the Platform.</p>
         </section>
 
         <section>
@@ -68,6 +70,16 @@ export default function TermsPage() {
         <section>
           <h2 className="font-display font-bold text-base mb-2" style={{ color: "var(--text-primary)" }}>12. Contact</h2>
           <p>For questions about these Terms, contact us at <strong style={{ color: "var(--accent)" }}>support@grademyprofessor.bh</strong></p>
+        </section>
+
+        <section>
+          <h2 className="font-display font-bold text-base mb-2" style={{ color: "var(--text-primary)" }}>13. Content Disputes</h2>
+          <p>If you believe a review contains false, defamatory, or otherwise unlawful content, you may submit a removal request to <strong style={{ color: "var(--accent)" }}>support@grademyprofessor.bh</strong>. We will review all requests within 7 business days.</p>
+        </section>
+
+        <section>
+          <h2 className="font-display font-bold text-base mb-2" style={{ color: "var(--text-primary)" }}>14. Governing Law</h2>
+          <p>These Terms are governed by the laws of the Kingdom of Bahrain. Any disputes shall be subject to the jurisdiction of Bahraini courts.</p>
         </section>
       </div>
     </div>

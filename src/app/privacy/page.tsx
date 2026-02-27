@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <div className="px-5 pb-10 pt-8 max-w-2xl mx-auto">
       <h1 className="font-display text-2xl font-extrabold mb-1" style={{ color: "var(--text-primary)" }}>Privacy Policy</h1>
-      <p className="text-xs mb-8" style={{ color: "var(--text-tertiary)" }}>Last updated: February 23, 2026</p>
+      <p className="text-xs mb-8" style={{ color: "var(--text-tertiary)" }}>Last updated: February 27, 2026</p>
 
       <div className="space-y-6 text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
         <section>
@@ -41,6 +41,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="font-display font-bold text-base mb-2" style={{ color: "var(--text-primary)" }}>6. Data Sharing</h2>
           <p>We do not sell, rent, or share your personal information with third parties. We may disclose information only if required by law or to protect the safety of our users.</p>
+          <p className="mt-2">We use the following third-party service providers who may process limited technical data on our behalf: Sentry (error monitoring) and Upstash (rate limiting infrastructure). These providers are contractually bound to protect your data.</p>
         </section>
 
         <section>
