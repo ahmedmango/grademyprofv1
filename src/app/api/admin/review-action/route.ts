@@ -41,6 +41,34 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ success: true, review_id, old_status: review.status, new_status: newStatus }, { headers: NO_STORE_HEADERS });
 }
 
+export async function PATCH(req: NextRequest) {
+  const admin = await authenticateAdmin(req);
+  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS });
+
+  const { review_id, rating_quality, rating_difficulty, would_take_again, tags, comment } = await req.json();
+  if (!review_id) return NextResponse.json({ error: "review_id required" }, { status: 400, headers: NO_STORE_HEADERS });
+
+  const supabase = createServiceClient();
+  const { data: review } = await supabase.from("reviews").select("id, professor_id, status").eq("id", review_id).single();
+  if (!review) return NextResponse.json({ error: "Review not found" }, { status: 404, headers: NO_STORE_HEADERS });
+
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (rating_quality !== undefined) updates.rating_quality = Math.min(5, Math.max(1, Number(rating_quality)));
+  if (rating_difficulty !== undefined) updates.rating_difficulty = Math.min(5, Math.max(1, Number(rating_difficulty)));
+  if (would_take_again !== undefined) updates.would_take_again = would_take_again;
+  if (tags !== undefined) updates.tags = Array.isArray(tags) ? tags : [];
+  if (comment !== undefined) updates.comment = String(comment).trim();
+
+  const { error } = await supabase.from("reviews").update(updates).eq("id", review_id);
+  if (error) return NextResponse.json({ error: "Failed to update review" }, { status: 500, headers: NO_STORE_HEADERS });
+
+  if (review.status === "live") {
+    await supabase.rpc("refresh_professor_aggregates", { p_professor_id: review.professor_id });
+  }
+
+  return NextResponse.json({ success: true, review_id }, { headers: NO_STORE_HEADERS });
+}
+
 export async function PUT(req: NextRequest) {
   const admin = await authenticateAdmin(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS });

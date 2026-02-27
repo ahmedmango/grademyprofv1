@@ -2,6 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+type EditData = {
+  rating_quality?: number;
+  rating_difficulty?: number;
+  would_take_again?: boolean | null;
+  tags?: string[];
+  comment?: string;
+};
+
 type Review = {
   id: string;
   rating_quality: number;
@@ -48,6 +56,15 @@ export default function ModerationPage() {
     }
     setLoading(false);
   }, [tab, page, authHeader]);
+
+  const saveEdit = useCallback(async (reviewId: string, data: EditData) => {
+    await fetch("/api/admin/review-action", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: authHeader() },
+      body: JSON.stringify({ review_id: reviewId, ...data }),
+    });
+    fetchQueue();
+  }, [authHeader, fetchQueue]);
 
   useEffect(() => { fetchQueue(); }, [fetchQueue]);
 
@@ -170,6 +187,7 @@ export default function ModerationPage() {
                 selected={selected.has(r.id)}
                 onToggle={() => toggleSelect(r.id)}
                 onAction={(action) => performAction(r.id, action)}
+                onSave={(data) => saveEdit(r.id, data)}
                 loading={actionLoading === r.id}
                 currentTab={tab}
               />
@@ -203,12 +221,34 @@ export default function ModerationPage() {
 }
 
 function ReviewModCard({
-  review, selected, onToggle, onAction, loading, currentTab,
+  review, selected, onToggle, onAction, onSave, loading, currentTab,
 }: {
   review: Review; selected: boolean; onToggle: () => void;
-  onAction: (action: string) => void; loading: boolean; currentTab: string;
+  onAction: (action: string) => void; onSave: (data: EditData) => Promise<void>;
+  loading: boolean; currentTab: string;
 }) {
   const hasFlags = Object.keys(review.risk_flags || {}).length > 0;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<EditData>({});
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = () => {
+    setDraft({
+      rating_quality: review.rating_quality,
+      rating_difficulty: review.rating_difficulty,
+      would_take_again: review.would_take_again,
+      tags: review.tags ?? [],
+      comment: review.comment ?? "",
+    });
+    setEditing(true);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(draft);
+    setSaving(false);
+    setEditing(false);
+  };
 
   return (
     <div className={`bg-white rounded-xl border p-4 transition ${
@@ -321,6 +361,12 @@ function ReviewModCard({
                 ⚑ Flag
               </button>
             )}
+            {currentTab === "live" && !editing && (
+              <button onClick={startEdit} disabled={loading}
+                className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 disabled:opacity-50 transition">
+                ✏ Edit
+              </button>
+            )}
             {currentTab === "removed" && (
               <button onClick={() => { if (confirm("Permanently delete this review? This cannot be undone.")) onAction("delete"); }} disabled={loading}
                 className="px-3 py-1.5 bg-gray-800 text-white text-xs font-medium rounded-lg hover:bg-gray-900 disabled:opacity-50 transition">
@@ -328,6 +374,72 @@ function ReviewModCard({
               </button>
             )}
           </div>
+
+          {/* Inline edit panel */}
+          {editing && (
+            <div className="mt-3 pt-3 border-t border-blue-100 bg-blue-50/40 rounded-lg p-3 space-y-3">
+              <div className="flex flex-wrap gap-4">
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-gray-500">Quality (1–5)</span>
+                  <input
+                    type="number" min={1} max={5} step={1}
+                    value={draft.rating_quality ?? ""}
+                    onChange={(e) => setDraft((d) => ({ ...d, rating_quality: Number(e.target.value) }))}
+                    className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-gray-500">Difficulty (1–5)</span>
+                  <input
+                    type="number" min={1} max={5} step={1}
+                    value={draft.rating_difficulty ?? ""}
+                    onChange={(e) => setDraft((d) => ({ ...d, rating_difficulty: Number(e.target.value) }))}
+                    className="w-20 px-2 py-1 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  <span className="text-xs font-semibold text-gray-500">Would retake</span>
+                  <select
+                    value={draft.would_take_again === null || draft.would_take_again === undefined ? "null" : draft.would_take_again ? "true" : "false"}
+                    onChange={(e) => setDraft((d) => ({ ...d, would_take_again: e.target.value === "null" ? null : e.target.value === "true" }))}
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400"
+                  >
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                    <option value="null">N/A</option>
+                  </select>
+                </label>
+              </div>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-gray-500">Tags (comma-separated)</span>
+                <input
+                  type="text"
+                  value={(draft.tags ?? []).join(", ")}
+                  onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean) }))}
+                  className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-gray-500">Comment</span>
+                <textarea
+                  rows={3}
+                  value={draft.comment ?? ""}
+                  onChange={(e) => setDraft((d) => ({ ...d, comment: e.target.value }))}
+                  className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400 resize-none"
+                />
+              </label>
+              <div className="flex gap-2">
+                <button onClick={handleSave} disabled={saving}
+                  className="px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50 transition">
+                  {saving ? "Saving…" : "Save changes"}
+                </button>
+                <button onClick={() => setEditing(false)} disabled={saving}
+                  className="px-4 py-1.5 bg-white text-gray-600 text-xs font-medium rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 transition">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
