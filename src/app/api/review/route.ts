@@ -127,19 +127,18 @@ export async function POST(req: NextRequest) {
       await supabase.rpc("refresh_professor_aggregates", { p_professor_id: professor_id });
     }
 
-    // Fire-and-forget email for auto-approved reviews
+    // Email for auto-approved reviews — awaited so it completes before the serverless function exits
     if (status === "live" && user_id) {
-      (async () => {
-        try {
-          const { data: user } = await supabase
-            .from("user_accounts").select("email, username").eq("id", user_id).single();
-          if (user?.email) {
-            const profName = profResult.data?.name_en || "the professor";
-            const { data: course } = await supabase.from("courses").select("code").eq("id", course_id).single();
-            await sendReviewLive(user.email, user.username, profName, course?.code || "");
-          }
-        } catch (err) { console.error("[email] auto-approval notify failed:", err); }
-      })();
+      try {
+        const { data: user } = await supabase
+          .from("user_accounts").select("email, username").eq("id", user_id).single();
+        console.log(`[review] auto-approval email → user=${user ? user.email : "not found"}`);
+        if (user?.email) {
+          const profName = profResult.data?.name_en || "the professor";
+          const { data: course } = await supabase.from("courses").select("code").eq("id", course_id).single();
+          await sendReviewLive(user.email, user.username, profName, course?.code || "");
+        }
+      } catch (err) { console.error("[email] auto-approval notify failed:", err); }
     }
 
     // Revalidate professor page and university page so changes appear immediately

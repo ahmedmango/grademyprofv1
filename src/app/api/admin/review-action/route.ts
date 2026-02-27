@@ -43,23 +43,23 @@ export async function POST(req: NextRequest) {
     await supabase.rpc("refresh_professor_aggregates", { p_professor_id: review.professor_id });
   }
 
-  // Fire-and-forget email notification for approve/reject
+  // Email notification for approve/reject — awaited so it completes before the serverless function exits
+  console.log(`[review-action] action=${action} newStatus=${newStatus} user_id=${review.user_id ?? "none"}`);
   if (review.user_id && (newStatus === "live" || newStatus === "removed")) {
-    (async () => {
-      try {
-        const { data: user } = await supabase
-          .from("user_accounts").select("email, username").eq("id", review.user_id).single();
-        if (user?.email) {
-          const profName = (review as any).professors?.name_en || "the professor";
-          const courseCode = (review as any).courses?.code || "";
-          if (newStatus === "live") {
-            await sendReviewLive(user.email, user.username, profName, courseCode);
-          } else {
-            await sendReviewRejected(user.email, user.username, profName);
-          }
+    try {
+      const { data: user } = await supabase
+        .from("user_accounts").select("email, username").eq("id", review.user_id).single();
+      console.log(`[review-action] user lookup → ${user ? user.email : "not found"}`);
+      if (user?.email) {
+        const profName = (review as any).professors?.name_en || "the professor";
+        const courseCode = (review as any).courses?.code || "";
+        if (newStatus === "live") {
+          await sendReviewLive(user.email, user.username, profName, courseCode);
+        } else {
+          await sendReviewRejected(user.email, user.username, profName);
         }
-      } catch (err) { console.error("[email] review-action notify failed:", err); }
-    })();
+      }
+    } catch (err) { console.error("[email] review-action notify failed:", err); }
   }
 
   return NextResponse.json({ success: true, review_id, old_status: review.status, new_status: newStatus }, { headers: NO_STORE_HEADERS });

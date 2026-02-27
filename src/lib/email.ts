@@ -49,9 +49,13 @@ export async function sendReviewLive(
   professorName: string,
   courseCode: string,
 ): Promise<void> {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY not set — skipping sendReviewLive");
+    return;
+  }
+  console.log(`[email] sendReviewLive → to=${to} prof="${professorName}" course="${courseCode}"`);
   try {
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: FROM,
       to,
       subject: "Your review is now live ✓",
@@ -70,8 +74,13 @@ export async function sendReviewLive(
         </p>
       `),
     });
+    if (error) {
+      console.error("[email] sendReviewLive Resend error:", JSON.stringify(error));
+    } else {
+      console.log("[email] sendReviewLive delivered, id:", data?.id);
+    }
   } catch (err) {
-    console.error("[email] sendReviewLive failed:", err);
+    console.error("[email] sendReviewLive threw:", err);
   }
 }
 
@@ -81,9 +90,13 @@ export async function sendReviewRejected(
   professorName: string,
   reason?: string,
 ): Promise<void> {
-  if (!process.env.RESEND_API_KEY) return;
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY not set — skipping sendReviewRejected");
+    return;
+  }
+  console.log(`[email] sendReviewRejected → to=${to} prof="${professorName}"`);
   try {
-    await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: FROM,
       to,
       subject: "Update on your GradeMyProf review",
@@ -109,7 +122,12 @@ export async function sendReviewRejected(
         </p>
       `),
     });
+    if (error) {
+      console.error("[email] sendReviewRejected Resend error:", JSON.stringify(error));
+    } else {
+      console.log("[email] sendReviewRejected delivered, id:", data?.id);
+    }
   } catch (err) {
-    console.error("[email] sendReviewRejected failed:", err);
+    console.error("[email] sendReviewRejected threw:", err);
   }
 }
