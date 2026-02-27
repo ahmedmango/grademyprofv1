@@ -48,12 +48,14 @@ export async function sendReviewLive(
   username: string,
   professorName: string,
   courseCode: string,
+  professorSlug?: string,
 ): Promise<void> {
   if (!process.env.RESEND_API_KEY) {
     console.warn("[email] RESEND_API_KEY not set — skipping sendReviewLive");
     return;
   }
   console.log(`[email] sendReviewLive → to=${to} prof="${professorName}" course="${courseCode}"`);
+  const profileUrl = professorSlug ? `${APP_URL}/p/${professorSlug}` : APP_URL;
   try {
     const { data, error } = await resend.emails.send({
       from: FROM,
@@ -69,9 +71,10 @@ export async function sendReviewLive(
         <p style="margin:0 0 28px;font-size:14px;color:#6b7280;line-height:1.7">
           Your feedback helps fellow students make better decisions at enrollment. Thank you for contributing.
         </p>
-        <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.6">
+        <p style="margin:0 0 20px;font-size:12px;color:#9ca3af;line-height:1.6">
           Your review is posted 100% anonymously — your name and email are never shared publicly.
         </p>
+        <a href="${profileUrl}" style="color:#E87B35;font-size:14px;font-weight:600;text-decoration:none">View →</a>
       `),
     });
     if (error) {
@@ -117,9 +120,10 @@ export async function sendReviewRejected(
           <a href="${APP_URL}/terms" style="color:#E87B35;text-decoration:none">community guidelines</a>.
           Honest, constructive feedback is always welcome.
         </p>
-        <p style="margin:0;font-size:12px;color:#9ca3af">
+        <p style="margin:0 0 20px;font-size:12px;color:#9ca3af">
           You're receiving this because you have an account at GradeMyProf.
         </p>
+        <a href="${APP_URL}" style="color:#E87B35;font-size:14px;font-weight:600;text-decoration:none">View →</a>
       `),
     });
     if (error) {

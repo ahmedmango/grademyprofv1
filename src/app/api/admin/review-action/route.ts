@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
   const { data: review } = await supabase
     .from("reviews")
-    .select("id, professor_id, status, user_id, courses ( code ), professors ( name_en )")
+    .select("id, professor_id, status, user_id, courses ( code ), professors ( name_en, slug )")
     .eq("id", review_id)
     .single();
   if (!review) return NextResponse.json({ error: "Review not found" }, { status: 404, headers: NO_STORE_HEADERS });
@@ -52,9 +52,10 @@ export async function POST(req: NextRequest) {
       console.log(`[review-action] user lookup → ${user ? user.email : "not found"}`);
       if (user?.email) {
         const profName = (review as any).professors?.name_en || "the professor";
+        const profSlug = (review as any).professors?.slug || "";
         const courseCode = (review as any).courses?.code || "";
         if (newStatus === "live") {
-          await sendReviewLive(user.email, user.username, profName, courseCode);
+          await sendReviewLive(user.email, user.username, profName, courseCode, profSlug);
         } else {
           await sendReviewRejected(user.email, user.username, profName);
         }

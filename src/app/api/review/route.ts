@@ -135,8 +135,9 @@ export async function POST(req: NextRequest) {
         console.log(`[review] auto-approval email → user=${user ? user.email : "not found"}`);
         if (user?.email) {
           const profName = profResult.data?.name_en || "the professor";
+          const profSlug = profResult.data?.slug || "";
           const { data: course } = await supabase.from("courses").select("code").eq("id", course_id).single();
-          await sendReviewLive(user.email, user.username, profName, course?.code || "");
+          await sendReviewLive(user.email, user.username, profName, course?.code || "", profSlug);
         }
       } catch (err) { console.error("[email] auto-approval notify failed:", err); }
     }
