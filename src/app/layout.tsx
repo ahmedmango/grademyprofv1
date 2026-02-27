@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Sans, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import Header from "@/components/Header";
+import CookieConsent from "@/components/CookieConsent";
 import "./globals.css";
 
 /* Display font: Plus Jakarta Sans — geometric, modern, with personality */
@@ -78,6 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Header />
             <main>{children}</main>
           </div>
+          <CookieConsent />
         </Providers>
       </body>
     </html>

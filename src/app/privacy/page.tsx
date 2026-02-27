@@ -18,7 +18,7 @@ export default function PrivacyPage() {
           <h2 className="font-display font-bold text-base mb-2" style={{ color: "var(--text-primary)" }}>2. Information We Collect</h2>
           <p><strong>Account Information:</strong> When you create an account, we collect your username, email address, and a hashed version of your password. Your password is encrypted and cannot be read by anyone, including our team.</p>
           <p className="mt-2"><strong>Review Content:</strong> The ratings, tags, grades, and comments you submit. This content is published anonymously — your identity is never attached to your reviews.</p>
-          <p className="mt-2"><strong>Device Information:</strong> We generate an anonymous device fingerprint to prevent duplicate reviews. This fingerprint cannot be used to identify you personally.</p>
+          <p className="mt-2"><strong>Device Information:</strong> We use FingerprintJS (an open-source browser fingerprinting library) to generate an anonymous device fingerprint. The raw fingerprint is immediately SHA-256 hashed with a local salt and the hash is stored in your browser&apos;s local storage under the key <code>gmp_anon_id</code>. The raw fingerprint is never stored or transmitted. This hash cannot be used to identify you personally and is used solely to prevent duplicate reviews.</p>
           <p className="mt-2"><strong>Technical Data:</strong> IP address (hashed and anonymized), browser type, and timestamps for security and rate-limiting purposes only.</p>
         </section>
 
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="font-display font-bold text-base mb-2" style={{ color: "var(--text-primary)" }}>6. Data Sharing</h2>
           <p>We do not sell, rent, or share your personal information with third parties. We may disclose information only if required by law or to protect the safety of our users.</p>
-          <p className="mt-2">We use the following third-party service providers who may process limited technical data on our behalf: Sentry (error monitoring) and Upstash (rate limiting infrastructure). These providers are contractually bound to protect your data.</p>
+          <p className="mt-2">We use the following third-party service providers who may process limited technical data on our behalf: Sentry (error monitoring), Upstash (rate limiting infrastructure), and FingerprintJS (anonymous device fingerprinting for duplicate review prevention). These providers are contractually bound to protect your data.</p>
         </section>
 
         <section>
