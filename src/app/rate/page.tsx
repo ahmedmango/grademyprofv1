@@ -36,7 +36,7 @@ function RateForm() {
   const preselectedCourseName = searchParams.get("courseName") || "";
 
   const [existingCourses, setExistingCourses] = useState<{ id: string; code: string; title_en: string }[]>([]);
-  const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>(preselectedCourseId ? [preselectedCourseId] : []);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>(preselectedCourseId || "");
   const [newCourseCode, setNewCourseCode] = useState("");
   const [newCourseTitle, setNewCourseTitle] = useState("");
   const [showAddCourse, setShowAddCourse] = useState(false);
@@ -54,13 +54,12 @@ function RateForm() {
       .finally(() => setLoadingCourses(false));
   }, [professorId, hasCoursePreselected]);
 
-  const toggleCourse = (id: string) => {
-    setSelectedCourseIds((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    );
+  const selectCourse = (id: string) => {
+    setSelectedCourseId((prev) => (prev === id ? "" : id));
+    setNewCourseCode("");
+    setNewCourseTitle("");
+    setShowAddCourse(false);
   };
-
-  const totalCourseCount = selectedCourseIds.length + (newCourseCode.trim().length >= 2 ? 1 : 0);
   const [quality, setQuality] = useState(0);
   const [difficulty, setDifficulty] = useState(0);
   const [wouldTakeAgain, setWouldTakeAgain] = useState<boolean | null>(null);
@@ -108,7 +107,7 @@ function RateForm() {
 
   const canAdvance = () => {
     switch (step) {
-      case 1: return totalCourseCount > 0;
+      case 1: return !!selectedCourseId || newCourseCode.trim().length >= 2;
       case 2: return quality > 0 && difficulty > 0;
       case 3: return grade.length > 0;
       case 4: return true;
@@ -156,9 +155,9 @@ function RateForm() {
     try {
       const hash = await getAnonUserHash();
 
-      const courseIdsToSubmit: string[] = [...selectedCourseIds];
+      let courseIdToSubmit = selectedCourseId;
 
-      if (newCourseCode.trim().length >= 2) {
+      if (!courseIdToSubmit && newCourseCode.trim().length >= 2) {
         const courseRes = await fetch("/api/create-course", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -174,49 +173,34 @@ function RateForm() {
           setSubmitting(false);
           return;
         }
-        courseIdsToSubmit.push(courseData.course_id);
+        courseIdToSubmit = courseData.course_id;
       }
 
-      if (courseIdsToSubmit.length === 0) {
-        setError("Please select or add at least one course.");
+      if (!courseIdToSubmit) {
+        setError("Please select or add a course.");
         setSubmitting(false);
         return;
       }
 
-      let lastAutoApproved = false;
-      let successCount = 0;
-      let lastError = "";
+      const res = await fetch("/api/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-anon-user-hash": hash },
+        body: JSON.stringify({
+          professor_id: professorId, course_id: courseIdToSubmit,
+          rating_quality: quality, rating_difficulty: difficulty,
+          would_take_again: wouldTakeAgain, grade_received: grade,
+          tags, comment: comment.trim(), user_id: userId,
+        }),
+      });
+      const data = await res.json();
 
-      for (const cid of courseIdsToSubmit) {
-        const res = await fetch("/api/review", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-anon-user-hash": hash },
-          body: JSON.stringify({
-            professor_id: professorId, course_id: cid,
-            rating_quality: quality, rating_difficulty: difficulty,
-            would_take_again: wouldTakeAgain, grade_received: grade,
-            tags, comment: comment.trim(), user_id: userId,
-          }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          successCount++;
-          if (data.auto_approved) lastAutoApproved = true;
-        } else {
-          lastError = data.error || "Failed to submit review";
-        }
-      }
-
-      if (successCount > 0) {
+      if (res.ok) {
         try { localStorage.removeItem("gmp_gate_status"); localStorage.removeItem("gmp_review_count"); } catch {}
         await refreshGate();
-        setAutoApproved(lastAutoApproved);
+        setAutoApproved(!!data.auto_approved);
         setSuccess(true);
-        if (lastError && successCount < courseIdsToSubmit.length) {
-          setError(`${successCount}/${courseIdsToSubmit.length} submitted. Some failed: ${lastError}`);
-        }
       } else {
-        setError(lastError || "Failed to submit review");
+        setError(data.error || "Failed to submit review");
       }
     } catch {
       setError("Connection failed. Please try again.");
@@ -244,16 +228,12 @@ function RateForm() {
           </svg>
         </div>
         <h2 className="font-display text-xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-          {autoApproved
-            ? (totalCourseCount > 1 ? "Reviews Published!" : "Review Published!")
-            : (totalCourseCount > 1 ? "Reviews Submitted!" : "Review Submitted!")}
+          {autoApproved ? "Review Published!" : "Review Submitted!"}
         </h2>
         <p className="text-sm mb-2" style={{ color: "var(--text-secondary)" }}>
-          {totalCourseCount > 1
-            ? `Submitted for ${totalCourseCount} courses. ${autoApproved ? "They are live!" : "Pending moderation — most are approved within 24 hours."}`
-            : autoApproved
-              ? "Your review is live. Thank you for helping fellow students!"
-              : "Your review is pending moderation. Most reviews are approved within 24 hours."}
+          {autoApproved
+            ? "Your review is live. Thank you for helping fellow students!"
+            : "Your review is pending moderation. Most reviews are approved within 24 hours."}
         </p>
         <p className="text-xs mb-6 font-semibold" style={{ color: "var(--accent)" }}>All ratings are now unlocked for you!</p>
         <div className="flex gap-3 justify-center flex-wrap">
@@ -278,9 +258,12 @@ function RateForm() {
           className="w-10 h-10 flex items-center justify-center rounded-xl text-lg transition-all duration-150 active:scale-90" style={{ color: "var(--accent)" }}>←</button>
         <div className="flex-1">
           <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{professorName}</div>
-          {(totalCourseCount > 0 || preselectedCourseName) && (
+          {(selectedCourseId || newCourseCode || preselectedCourseName) && (
             <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-              {preselectedCourseName || `${totalCourseCount} course${totalCourseCount !== 1 ? "s" : ""} selected`}
+              {preselectedCourseName ||
+                (selectedCourseId && existingCourses.find((c) => c.id === selectedCourseId)?.code) ||
+                (newCourseCode && `New: ${newCourseCode}`) ||
+                ""}
             </div>
           )}
         </div>
@@ -298,10 +281,10 @@ function RateForm() {
         <div className="space-y-4 animate-fade-up">
           <div>
             <label className="block text-xs font-semibold mb-1" style={{ color: "var(--text-secondary)" }}>
-              Which course(s) did you take with {professorName}?
+              Which course did you take with {professorName}?
             </label>
             <p className="text-[10px] mb-3" style={{ color: "var(--text-tertiary)" }}>
-              Select from existing courses or add a new one. You can select multiple.
+              Select one course, or add a new one if it isn&apos;t listed.
             </p>
           </div>
 
@@ -315,19 +298,19 @@ function RateForm() {
           {existingCourses.length > 0 && (
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
-                Previously reviewed courses
+                Known courses
               </label>
               <div className="flex flex-wrap gap-2">
                 {existingCourses.map((c) => {
-                  const selected = selectedCourseIds.includes(c.id);
+                  const isSelected = selectedCourseId === c.id;
                   return (
-                    <button key={c.id} onClick={() => toggleCourse(c.id)}
+                    <button key={c.id} onClick={() => selectCourse(c.id)}
                       className="px-3.5 py-2 rounded-xl text-xs font-semibold transition-all active:scale-[0.97]"
-                      style={selected
+                      style={isSelected
                         ? { background: "var(--accent)", color: "#fff" }
                         : { background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }
                       }>
-                      {selected && <span className="mr-1">✓</span>}
+                      {isSelected && <span className="mr-1">✓</span>}
                       {c.code}
                     </button>
                   );
@@ -337,7 +320,7 @@ function RateForm() {
           )}
 
           {existingCourses.length > 0 && !showAddCourse && (
-            <button onClick={() => setShowAddCourse(true)}
+            <button onClick={() => { setShowAddCourse(true); setSelectedCourseId(""); }}
               className="w-full py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] flex items-center justify-center gap-1.5"
               style={{ background: "var(--accent-soft)", color: "var(--accent)", border: "1px dashed var(--accent)" }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -353,7 +336,8 @@ function RateForm() {
               <label className="block text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
                 {existingCourses.length > 0 ? "New course" : "Course code or name"}
               </label>
-              <input value={newCourseCode} onChange={(e) => setNewCourseCode(e.target.value.toUpperCase())}
+              <input value={newCourseCode}
+                onChange={(e) => { setNewCourseCode(e.target.value.toUpperCase()); setSelectedCourseId(""); }}
                 placeholder="Code or name (e.g. CS101 or Intro to CS)" maxLength={50}
                 className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
@@ -364,9 +348,11 @@ function RateForm() {
             </div>
           )}
 
-          {totalCourseCount > 0 && (
+          {(selectedCourseId || newCourseCode.trim().length >= 2) && (
             <div className="p-2.5 rounded-xl text-[11px] font-semibold text-center" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
-              {totalCourseCount} course{totalCourseCount !== 1 ? "s" : ""} selected — your review will be submitted for {totalCourseCount === 1 ? "this course" : "each course"}
+              {selectedCourseId
+                ? `Reviewing ${existingCourses.find((c) => c.id === selectedCourseId)?.code || "selected course"}`
+                : `Adding new course: ${newCourseCode}`}
             </div>
           )}
         </div>
@@ -450,7 +436,6 @@ function RateForm() {
             <label className="block text-xs font-semibold mb-2" style={{ color: "var(--text-secondary)" }}>Review (optional)</label>
             <textarea value={comment} onChange={(e) => setComment(e.target.value)}
               placeholder="What should other students know about this professor?" rows={4} maxLength={1000}
-              autoCorrect="off" autoCapitalize="off" spellCheck={false}
               className="w-full p-3.5 rounded-xl text-sm resize-none outline-none"
               style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
             <div className="flex justify-between mt-1">
@@ -574,7 +559,7 @@ function RateForm() {
                 <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 Submitting…
               </span>
-            ) : totalCourseCount > 1 ? `Submit ${totalCourseCount} Reviews ✓` : "Submit Review ✓"}
+            ) : "Submit Review ✓"}
           </button>
         )}
       </div>

@@ -237,7 +237,7 @@ function SuggestForm() {
                       <option value="">Title</option>
                       {PREFIXES.filter(Boolean).map((pf) => <option key={pf} value={pf}>{pf}</option>)}
                     </select>
-                    <input value={p.nameEn} onChange={(e) => updateProf(idx, "nameEn", e.target.value)} placeholder="Full name (e.g. Sager Al Khalifa)"
+                    <input value={p.nameEn} onChange={(e) => updateProf(idx, "nameEn", e.target.value)} placeholder="Full Name"
                       autoFocus
                       className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
                       style={{ background: "var(--bg-surface-alt)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />

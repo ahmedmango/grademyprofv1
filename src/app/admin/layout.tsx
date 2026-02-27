@@ -77,6 +77,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             { href: "/admin", label: "Dashboard" },
             { href: "/admin/moderation", label: "Moderation" },
             { href: "/admin/bulk-import", label: "Import" },
+            { href: "/admin/professors", label: "Professors" },
             { href: "/admin/users", label: "Users" },
             { href: "/admin/entities", label: "Manage" },
           ].map((link) => (

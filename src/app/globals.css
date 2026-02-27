@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent iOS auto-zoom on input focus (triggered when font-size < 16px) */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
 /* ============================================================
    DESIGN TOKENS — Light (default)
    ============================================================ */
@@ -174,14 +179,8 @@ body {
 }
 
 /* ============================================================
-   FORM INPUTS — consistent focus states + disable autocorrect
+   FORM INPUTS — consistent focus states
    ============================================================ */
-input, textarea {
-  -webkit-autocorrect: off;
-  autocorrect: off;
-  autocapitalize: off;
-  spellcheck: false;
-}
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent) !important;
   box-shadow: 0 0 0 3px var(--accent-soft);

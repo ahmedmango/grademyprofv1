@@ -70,7 +70,7 @@ export async function PATCH(req: NextRequest) {
   const admin = await authenticateAdmin(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS });
 
-  const { review_id, rating_quality, rating_difficulty, would_take_again, tags, comment, course_code, course_title } = await req.json();
+  const { review_id, rating_quality, rating_difficulty, would_take_again, tags, comment, course_code, course_title, upvote_boost } = await req.json();
   if (!review_id) return NextResponse.json({ error: "review_id required" }, { status: 400, headers: NO_STORE_HEADERS });
 
   const supabase = createServiceClient();
@@ -83,6 +83,7 @@ export async function PATCH(req: NextRequest) {
   if (would_take_again !== undefined) updates.would_take_again = would_take_again;
   if (tags !== undefined) updates.tags = Array.isArray(tags) ? tags : [];
   if (comment !== undefined) updates.comment = String(comment).trim();
+  if (upvote_boost !== undefined) updates.upvote_boost = Math.max(0, Math.round(Number(upvote_boost)));
 
   const { error } = await supabase.from("reviews").update(updates).eq("id", review_id);
   if (error) return NextResponse.json({ error: "Failed to update review" }, { status: 500, headers: NO_STORE_HEADERS });

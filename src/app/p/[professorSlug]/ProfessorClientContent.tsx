@@ -4,6 +4,8 @@ import { useCallback } from "react";
 import RateButton from "@/components/RateButton";
 import ReviewVoteButtons, { useReviewVotes } from "@/components/ReviewVoteButtons";
 import { useUser } from "@/components/UserProvider";
+import { useApp } from "@/components/Providers";
+import { t } from "@/lib/i18n";
 import Link from "next/link";
 import { getTagSentiment, getTagStyles } from "@/lib/tagColors";
 import { getGradeClassification, getClassificationColor, getClassificationBg } from "@/lib/gradeClassification";
@@ -31,14 +33,6 @@ const GRADE_COLORS: Record<string, string> = {
   "Distinction": "#16A34A", "Merit": "#2563EB", "Pass": "#CA8A04", "Fail": "#DC2626",
 };
 
-const DIST_LABELS = [
-  { key: "5", label: "Awesome" },
-  { key: "4", label: "Great" },
-  { key: "3", label: "Good" },
-  { key: "2", label: "OK" },
-  { key: "1", label: "Awful" },
-];
-
 function TagPill({ tag }: { tag: string }) {
   const sentiment = getTagSentiment(tag);
   const styles = getTagStyles(sentiment);
@@ -56,14 +50,14 @@ function TagPill({ tag }: { tag: string }) {
   );
 }
 
-function GradeClassificationBadge({ grade }: { grade: string }) {
+function GradeClassificationBadge({ grade, isRtl }: { grade: string; isRtl: boolean }) {
   const classification = getGradeClassification(grade);
   if (!classification) return null;
   const color = getClassificationColor(classification);
   const bg = getClassificationBg(classification);
   return (
     <span
-      className="inline-block px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ml-1.5"
+      className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${isRtl ? "mr-1.5" : "ml-1.5"}`}
       style={{ color, background: bg }}
     >
       {classification}
@@ -104,6 +98,17 @@ export default function ProfessorClientContent({
   courses: any[];
   reviews: any[];
 }) {
+  const { lang } = useApp();
+  const isRtl = lang === "ar";
+
+  const DIST_LABELS = [
+    { key: "5", label: t(lang, "dist_awesome") },
+    { key: "4", label: t(lang, "dist_great") },
+    { key: "3", label: t(lang, "dist_good") },
+    { key: "2", label: t(lang, "dist_ok") },
+    { key: "1", label: t(lang, "dist_awful") },
+  ];
+
   const maxDist = Math.max(...DIST_LABELS.map((d) => ratingDist[d.key] || 0), 1);
   const reviewIds = reviews.map((r: any) => r.id);
   const { counts, userVotes, setCounts, setUserVotes } = useReviewVotes(reviewIds);
@@ -139,6 +144,9 @@ export default function ProfessorClientContent({
     }
   }, [user, userVotes, counts, setCounts, setUserVotes]);
 
+  const dateLocale = isRtl ? "ar-BH" : "en-US";
+  const arrow = isRtl ? "←" : "→";
+
   return (
     <>
       {/* Hero — big rating + name + stats */}
@@ -152,7 +160,7 @@ export default function ProfessorClientContent({
               <span className="text-base font-semibold" style={{ color: "var(--text-tertiary)" }}>/ 5</span>
             </div>
             <p className="text-xs mt-0.5" style={{ color: "var(--text-tertiary)" }}>
-              Overall Quality Based on <span className="font-semibold" style={{ color: "var(--text-secondary)" }}>{reviewCount} {reviewCount === 1 ? "rating" : "ratings"}</span>
+              {t(lang, "overall_quality")} <span className="font-semibold" style={{ color: "var(--text-secondary)" }}>{reviewCount} {reviewCount === 1 ? t(lang, "rating") : t(lang, "ratings")}</span>
             </p>
           </div>
         )}
@@ -171,14 +179,14 @@ export default function ProfessorClientContent({
               <div className="text-2xl font-extrabold font-display" style={{ color: "var(--text-primary)" }}>
                 {Math.round(wouldTakeAgainPct)}%
               </div>
-              <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>Would take again</div>
+              <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{t(lang, "would_take_again")}</div>
             </div>
             <div className="w-px h-8" style={{ background: "var(--border)" }} />
             <div>
               <div className="text-2xl font-extrabold font-display" style={{ color: "var(--text-primary)" }}>
                 {avgDifficulty.toFixed(1)}
               </div>
-              <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>Level of Difficulty</div>
+              <div className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{t(lang, "level_of_difficulty")}</div>
             </div>
           </div>
         )}
@@ -188,14 +196,14 @@ export default function ProfessorClientContent({
       {reviewCount > 0 && (
         <div className="px-5 mb-5">
           <div className="p-4 rounded-2xl" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-            <div className="text-xs font-bold mb-3" style={{ color: "var(--text-primary)" }}>Rating Distribution</div>
+            <div className="text-xs font-bold mb-3" style={{ color: "var(--text-primary)" }}>{t(lang, "rating_distribution")}</div>
             <div className="space-y-2">
               {DIST_LABELS.map((d) => {
                 const count = ratingDist[d.key] || 0;
                 const pct = maxDist > 0 ? (count / maxDist) * 100 : 0;
                 return (
                   <div key={d.key} className="flex items-center gap-2">
-                    <div className="text-[10px] font-medium w-[48px] text-right" style={{ color: "var(--text-tertiary)" }}>
+                    <div className={`text-[10px] font-medium w-[48px] ${isRtl ? "text-left" : "text-right"}`} style={{ color: "var(--text-tertiary)" }}>
                       {d.label}
                     </div>
                     <div className="flex-1 h-4 rounded-sm overflow-hidden" style={{ background: "var(--border)" }}>
@@ -205,10 +213,11 @@ export default function ProfessorClientContent({
                           width: `${pct}%`,
                           background: "var(--accent)",
                           minWidth: count > 0 ? "4px" : "0",
+                          marginInlineStart: isRtl ? "auto" : undefined,
                         }}
                       />
                     </div>
-                    <span className="text-xs font-bold w-6 text-right" style={{ color: "var(--text-primary)" }}>
+                    <span className={`text-xs font-bold w-6 ${isRtl ? "text-left" : "text-right"}`} style={{ color: "var(--text-primary)" }}>
                       {count}
                     </span>
                   </div>
@@ -223,7 +232,9 @@ export default function ProfessorClientContent({
       {topTags.length > 0 && (
         <div className="px-5 mb-5">
           <div className="text-xs font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-            {profName.split(" ").pop()}&apos;s Top Tags
+            {isRtl
+              ? `${t(lang, "top_tags")} — ${profName.split(" ").pop()}`
+              : `${profName.split(" ").pop()}\u2019s ${t(lang, "top_tags")}`}
           </div>
           <div className="flex flex-wrap gap-2">
             {topTags.map((tag: string) => (
@@ -250,7 +261,7 @@ export default function ProfessorClientContent({
 
       {/* Reviews */}
       <div className="px-5 mb-5">
-        <div className="section-label mb-3">{reviewCount} {reviewCount === 1 ? "Student Rating" : "Student Ratings"}</div>
+        <div className="section-label mb-3">{reviewCount} {reviewCount === 1 ? t(lang, "student_rating") : t(lang, "student_ratings")}</div>
         <div className="space-y-3">
           {reviews.map((r: any) => {
             const classification = r.grade_received ? getGradeClassification(r.grade_received) : null;
@@ -260,7 +271,7 @@ export default function ProfessorClientContent({
                 <div className="flex gap-3 mb-3">
                   <div className="shrink-0">
                     <div className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>
-                      Quality
+                      {t(lang, "quality")}
                     </div>
                     <div
                       className="w-[52px] h-[52px] rounded-lg flex items-center justify-center"
@@ -274,7 +285,7 @@ export default function ProfessorClientContent({
 
                   <div className="shrink-0">
                     <div className="text-[9px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>
-                      Difficulty
+                      {t(lang, "difficulty")}
                     </div>
                     <div
                       className="w-[52px] h-[52px] rounded-lg flex items-center justify-center"
@@ -292,18 +303,19 @@ export default function ProfessorClientContent({
                         <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{r.courses.code}</span>
                       )}
                       <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                        {new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        {new Date(r.created_at).toLocaleDateString(dateLocale, { month: "short", day: "numeric", year: "numeric" })}
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
                       {r.would_take_again !== null && (
                         <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                          Would Take Again: <strong style={{ color: "var(--text-primary)" }}>{r.would_take_again ? "Yes" : "No"}</strong>
+                          {t(lang, "would_take_again_review")}: <strong style={{ color: "var(--text-primary)" }}>{r.would_take_again ? t(lang, "yes") : t(lang, "no_word")}</strong>
                         </span>
                       )}
                       {r.grade_received && (
                         <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                          Grade: <strong className="ml-0.5" style={{ color: GRADE_COLORS[r.grade_received] || "var(--text-primary)" }}>{r.grade_received}</strong>
+                          {t(lang, "grade")}: <strong className={isRtl ? "mr-0.5" : "ml-0.5"} style={{ color: GRADE_COLORS[r.grade_received] || "var(--text-primary)" }}>{r.grade_received}</strong>
+                          {classification && <GradeClassificationBadge grade={r.grade_received} isRtl={isRtl} />}
                         </span>
                       )}
                     </div>
@@ -338,7 +350,7 @@ export default function ProfessorClientContent({
           {reviews.length === 0 && (
             <div className="text-center py-8" style={{ color: "var(--text-tertiary)" }}>
               <div className="text-2xl mb-2">📝</div>
-              <p className="text-sm">No reviews yet. Be the first!</p>
+              <p className="text-sm">{t(lang, "no_reviews")}</p>
             </div>
           )}
         </div>

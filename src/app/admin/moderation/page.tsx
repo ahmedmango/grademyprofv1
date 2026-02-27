@@ -10,6 +10,7 @@ type EditData = {
   comment?: string;
   course_code?: string;
   course_title?: string;
+  upvote_boost?: number;
 };
 
 type Review = {
@@ -24,6 +25,8 @@ type Review = {
   risk_flags: Record<string, boolean>;
   created_at: string;
   user_id: string | null;
+  upvote_boost: number;
+  anon_user_hash: string | null;
   professors: { id: string; name_en: string; slug: string } | null;
   courses: { id: string; code: string; title_en: string } | null;
   universities: { id: string; name_en: string; slug: string } | null;
@@ -233,6 +236,8 @@ function ReviewModCard({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<EditData>({});
   const [saving, setSaving] = useState(false);
+  const [boostValue, setBoostValue] = useState(review.upvote_boost ?? 0);
+  const [boostSaving, setBoostSaving] = useState(false);
 
   const startEdit = () => {
     setDraft({
@@ -252,6 +257,12 @@ function ReviewModCard({
     await onSave(draft);
     setSaving(false);
     setEditing(false);
+  };
+
+  const handleBoost = async () => {
+    setBoostSaving(true);
+    await onSave({ upvote_boost: boostValue });
+    setBoostSaving(false);
   };
 
   return (
@@ -275,19 +286,15 @@ function ReviewModCard({
               <span>{review.universities?.name_en}</span>
               <span>·</span>
               <span>{new Date(review.created_at).toLocaleDateString()}</span>
-              {review.user_accounts && (
-                <>
-                  <span>·</span>
-                  <span className="text-blue-500 font-medium" title={review.user_accounts.email}>
-                    @{review.user_accounts.username}
-                  </span>
-                </>
-              )}
-              {!review.user_accounts && review.user_id && (
-                <>
-                  <span>·</span>
-                  <span className="text-gray-300">anon</span>
-                </>
+              <span>·</span>
+              {review.user_accounts ? (
+                <span className="text-blue-500 font-medium" title={review.user_accounts.email}>
+                  @{review.user_accounts.username}
+                </span>
+              ) : (
+                <span className="text-gray-400 font-mono" title={review.anon_user_hash || "no hash"}>
+                  anon #{(review.anon_user_hash || "??????").slice(0, 8)}
+                </span>
               )}
             </div>
           </div>
@@ -370,6 +377,24 @@ function ReviewModCard({
                 className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg hover:bg-blue-100 disabled:opacity-50 transition">
                 ✏ Edit
               </button>
+            )}
+            {currentTab === "live" && (
+              <div className="flex items-center gap-1 ml-auto">
+                <span className="text-xs text-gray-400">👍 boost:</span>
+                <input
+                  type="number" min={0} max={9999}
+                  value={boostValue}
+                  onChange={(e) => setBoostValue(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-16 px-1.5 py-1 border border-gray-200 rounded-lg text-xs text-center outline-none focus:border-brand-400"
+                />
+                <button
+                  onClick={handleBoost}
+                  disabled={boostSaving}
+                  className="px-2.5 py-1 bg-orange-50 text-orange-600 text-xs font-semibold rounded-lg hover:bg-orange-100 disabled:opacity-50 transition border border-orange-200"
+                >
+                  {boostSaving ? "…" : "Set"}
+                </button>
+              </div>
             )}
             {currentTab === "removed" && (
               <button onClick={() => { if (confirm("Permanently delete this review? This cannot be undone.")) onAction("delete"); }} disabled={loading}

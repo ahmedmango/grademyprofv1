@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getAnonUserHash } from "@/lib/anon-identity";
 import { fmtRating } from "@/lib/utils";
 import { VALID_TAGS } from "@/lib/constants";
+import { useUser } from "@/components/UserProvider";
 
 const LETTER_GRADES = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "F", "W"];
 const CLASSIFICATION_GRADES = ["Distinction", "Merit", "Credit", "Pass", "Fail"];
@@ -23,57 +24,76 @@ type MyReview = {
 
 export default function MyReviewsPage() {
   const [reviews, setReviews] = useState<MyReview[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [fetchLoading, setFetchLoading] = useState(false);
   const [error, setError] = useState("");
+  const { user, loading: userLoading } = useUser();
 
   useEffect(() => {
+    if (userLoading || !user) return; // wait for auth; don't fetch if not logged in
+    setFetchLoading(true);
     (async () => {
       try {
         const hash = await getAnonUserHash();
-        const res = await fetch("/api/my-reviews", { headers: { "x-anon-user-hash": hash } });
+        const headers: Record<string, string> = {
+          "x-anon-user-hash": hash,
+          "x-user-id": user.id,
+        };
+        const res = await fetch("/api/my-reviews", { headers });
         if (res.ok) { const data = await res.json(); setReviews(data.reviews); }
         else setError("Failed to load your reviews");
       } catch { setError("Connection failed"); }
-      setLoading(false);
+      setFetchLoading(false);
     })();
-  }, []);
+  }, [user?.id, userLoading]);
 
-  const statusStyle = (status: string) => {
+  const statusStyle = (status: string): React.CSSProperties => {
     switch (status) {
-      case "live": return "bg-green-50 text-green-700 border-green-200";
-      case "pending": case "flagged": return "bg-amber-50 text-amber-700 border-amber-200";
-      case "removed": return "bg-red-50 text-red-600 border-red-200";
-      default: return "bg-gray-50 text-gray-500 border-gray-200";
+      case "live": return { background: "#22C55E18", color: "#16A34A", border: "1px solid #22C55E40" };
+      case "pending": case "flagged": return { background: "#F59E0B18", color: "#D97706", border: "1px solid #F59E0B40" };
+      case "removed": return { background: "#EF444418", color: "#DC2626", border: "1px solid #EF444440" };
+      default: return { background: "var(--border)", color: "var(--text-tertiary)", border: "1px solid var(--border)" };
     }
   };
 
-  const qc = (v: number) => v >= 4 ? "text-green-600" : v >= 3 ? "text-amber-600" : "text-red-600";
+  const qColor = (v: number) => v >= 4 ? "#22C55E" : v >= 3 ? "#EAB308" : "#EF4444";
 
   return (
     <div className="px-5 pb-10">
       <div className="pt-4 flex items-center gap-3 mb-6">
         <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-xl text-lg transition-all duration-150 active:scale-90" style={{ color: "var(--accent)" }}>←</Link>
-        <span className="text-xs text-gray-400">Back to Home</span>
+        <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>Back to Home</span>
       </div>
 
-      <h1 className="font-display text-2xl font-extrabold text-brand-600 mb-1">My Reviews</h1>
-      <p className="text-sm text-gray-500 mb-6">Track the status of your submitted ratings. Reviews go live after moderation.</p>
+      <h1 className="font-display text-2xl font-extrabold mb-1" style={{ color: "var(--accent)" }}>My Reviews</h1>
+      <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>Track the status of your submitted ratings. Reviews go live after moderation.</p>
 
-      {loading ? (
-        <div className="text-center py-16 text-gray-400"><div className="text-2xl mb-2 animate-pulse">📝</div><p className="text-sm">Loading your reviews…</p></div>
+      {userLoading ? (
+        <div className="text-center py-16" style={{ color: "var(--text-tertiary)" }}>
+          <div className="w-6 h-6 border-2 rounded-full animate-spin mx-auto mb-3" style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} />
+          <p className="text-sm">Loading…</p>
+        </div>
+      ) : !user ? (
+        <div className="text-center py-16">
+          <div className="text-4xl mb-3">🔒</div>
+          <h3 className="font-display text-lg font-bold mb-1" style={{ color: "var(--text-primary)" }}>Login required</h3>
+          <p className="text-sm mb-5" style={{ color: "var(--text-secondary)" }}>Sign in to see the reviews you've submitted.</p>
+          <Link href="/auth" className="inline-block px-6 py-3 rounded-xl font-semibold text-sm transition" style={{ background: "var(--accent)", color: "#fff" }}>Sign In →</Link>
+        </div>
+      ) : fetchLoading ? (
+        <div className="text-center py-16" style={{ color: "var(--text-tertiary)" }}><div className="text-2xl mb-2 animate-pulse">📝</div><p className="text-sm">Loading your reviews…</p></div>
       ) : error ? (
-        <div className="text-center py-16 text-red-400"><p className="text-sm">{error}</p></div>
+        <div className="text-center py-16" style={{ color: "#EF4444" }}><p className="text-sm">{error}</p></div>
       ) : reviews.length === 0 ? (
         <div className="text-center py-16">
           <div className="text-4xl mb-3">✍️</div>
-          <h3 className="font-display text-lg font-bold text-brand-600 mb-1">No reviews yet</h3>
-          <p className="text-sm text-gray-500 mb-5">Your ratings help hundreds of students pick the right professor.</p>
-          <Link href="/search" className="inline-block px-6 py-3 bg-brand-500 text-white rounded-xl font-semibold text-sm hover:bg-brand-600 transition">Find a Professor to Rate</Link>
+          <h3 className="font-display text-lg font-bold mb-1" style={{ color: "var(--accent)" }}>No reviews yet</h3>
+          <p className="text-sm mb-5" style={{ color: "var(--text-secondary)" }}>Your ratings help hundreds of students pick the right professor.</p>
+          <Link href="/search" className="inline-block px-6 py-3 rounded-xl font-semibold text-sm transition" style={{ background: "var(--accent)", color: "#fff" }}>Find a Professor to Rate</Link>
         </div>
       ) : (
         <div className="space-y-3">
           {reviews.map((r) => (
-            <ReviewCard key={r.id} review={r} statusStyle={statusStyle} qc={qc}
+            <ReviewCard key={r.id} review={r} statusStyle={statusStyle} qColor={qColor}
               onUpdated={(updated) => setReviews((prev) => prev.map((rv) => rv.id === updated.id ? { ...rv, ...updated } : rv))} />
           ))}
         </div>
@@ -82,12 +102,13 @@ export default function MyReviewsPage() {
   );
 }
 
-function ReviewCard({ review: r, statusStyle, qc, onUpdated }: {
+function ReviewCard({ review: r, statusStyle, qColor, onUpdated }: {
   review: MyReview;
-  statusStyle: (s: string) => string;
-  qc: (v: number) => string;
+  statusStyle: (s: string) => React.CSSProperties;
+  qColor: (v: number) => string;
   onUpdated: (updated: Partial<MyReview> & { id: string }) => void;
 }) {
+  const { user } = useUser();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
@@ -111,9 +132,15 @@ function ReviewCard({ review: r, statusStyle, qc, onUpdated }: {
     setEditError("");
     try {
       const hash = await getAnonUserHash();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "x-anon-user-hash": hash,
+      };
+      if (user?.id) headers["x-user-id"] = user.id;
+
       const res = await fetch("/api/review", {
         method: "PUT",
-        headers: { "Content-Type": "application/json", "x-anon-user-hash": hash },
+        headers,
         body: JSON.stringify({
           review_id: r.id,
           rating_quality: editQuality,
@@ -134,6 +161,8 @@ function ReviewCard({ review: r, statusStyle, qc, onUpdated }: {
           grade_received: editGrade,
           tags: editTags,
           comment: editComment.trim(),
+          // If the review was live, it's now back under moderation
+          ...(data.went_to_moderation ? { display_status: "pending", status_label: "Under Review" } : {}),
         });
         setEditing(false);
       } else {
@@ -150,51 +179,57 @@ function ReviewCard({ review: r, statusStyle, qc, onUpdated }: {
 
   if (editing) {
     return (
-      <div className="bg-white rounded-2xl border-2 border-brand-200 p-4 space-y-4">
+      <div className="rounded-2xl p-4 space-y-4" style={{ background: "var(--bg-surface)", border: "2px solid var(--accent)" }}>
         <div className="flex items-center justify-between">
           <div>
-            <div className="font-semibold text-sm text-brand-900">{r.professors?.name_en}</div>
-            <div className="text-xs text-brand-500 font-medium mt-0.5">{r.courses?.code} · {r.universities?.name_en}</div>
+            <div className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>{r.professors?.name_en}</div>
+            <div className="text-xs font-medium mt-0.5" style={{ color: "var(--accent)" }}>{r.courses?.code} · {r.universities?.name_en}</div>
           </div>
           <button onClick={() => { setEditing(false); setEditError(""); }}
-            className="text-xs font-semibold text-gray-400 hover:text-gray-600">Cancel</button>
+            className="text-xs font-semibold" style={{ color: "var(--text-tertiary)" }}>Cancel</button>
         </div>
 
-        {editError && <div className="p-2.5 rounded-xl text-xs text-red-600 bg-red-50 border border-red-100">{editError}</div>}
+        {r.display_status === "live" && (
+          <div className="p-2.5 rounded-xl text-xs" style={{ color: "#D97706", background: "#F59E0B15", border: "1px solid #F59E0B40" }}>
+            ⚠️ Saving changes will send this review back under moderation until approved.
+          </div>
+        )}
+
+        {editError && <div className="p-2.5 rounded-xl text-xs" style={{ color: "#DC2626", background: "#EF444415", border: "1px solid #EF444430" }}>{editError}</div>}
 
         <div>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2 text-gray-500">
+          <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
             Quality — {qualityLabel(editQuality)}
           </label>
           <div className="flex gap-1.5">
             {[1, 2, 3, 4, 5].map((v) => (
               <button key={v} onClick={() => setEditQuality(v)}
                 className="flex-1 py-2 rounded-lg text-xs font-bold transition-all"
-                style={editQuality === v ? { background: "var(--accent)", color: "#fff" } : { background: "#f5f5f5", color: "#666" }}>{v}</button>
+                style={editQuality === v ? { background: "var(--accent)", color: "#fff" } : { background: "var(--border)", color: "var(--text-secondary)" }}>{v}</button>
             ))}
           </div>
         </div>
 
         <div>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2 text-gray-500">
+          <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>
             Difficulty — {difficultyLabel(editDifficulty)}
           </label>
           <div className="flex gap-1.5">
             {[1, 2, 3, 4, 5].map((v) => (
               <button key={v} onClick={() => setEditDifficulty(v)}
                 className="flex-1 py-2 rounded-lg text-xs font-bold transition-all"
-                style={editDifficulty === v ? { background: "var(--accent)", color: "#fff" } : { background: "#f5f5f5", color: "#666" }}>{v}</button>
+                style={editDifficulty === v ? { background: "var(--accent)", color: "#fff" } : { background: "var(--border)", color: "var(--text-secondary)" }}>{v}</button>
             ))}
           </div>
         </div>
 
         <div>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2 text-gray-500">Would take again?</label>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>Would take again?</label>
           <div className="flex gap-1.5">
             {[true, false].map((v) => (
               <button key={String(v)} onClick={() => setEditWouldTakeAgain(v)}
                 className="flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
-                style={editWouldTakeAgain === v ? { background: "var(--accent)", color: "#fff" } : { background: "#f5f5f5", color: "#666" }}>
+                style={editWouldTakeAgain === v ? { background: "var(--accent)", color: "#fff" } : { background: "var(--border)", color: "var(--text-secondary)" }}>
                 {v ? "👍 Yes" : "👎 No"}
               </button>
             ))}
@@ -202,33 +237,33 @@ function ReviewCard({ review: r, statusStyle, qc, onUpdated }: {
         </div>
 
         <div>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2 text-gray-500">Grade</label>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>Grade</label>
           <div className="flex flex-wrap gap-1.5">
             {ALL_GRADES.map((g) => (
               <button key={g} onClick={() => setEditGrade(g)}
                 className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-all"
-                style={editGrade === g ? { background: "var(--accent)", color: "#fff" } : { background: "#f5f5f5", color: "#666" }}>{g}</button>
+                style={editGrade === g ? { background: "var(--accent)", color: "#fff" } : { background: "var(--border)", color: "var(--text-secondary)" }}>{g}</button>
             ))}
           </div>
         </div>
 
         <div>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2 text-gray-500">Tags (up to 3)</label>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>Tags (up to 3)</label>
           <div className="flex flex-wrap gap-1.5">
             {VALID_TAGS.map((tag) => (
               <button key={tag} onClick={() => toggleTag(tag)}
                 className="px-2.5 py-1 rounded-md text-[10px] font-medium transition-all"
-                style={editTags.includes(tag) ? { background: "var(--accent)", color: "#fff" } : { background: "#f5f5f5", color: "#666" }}>{tag}</button>
+                style={editTags.includes(tag) ? { background: "var(--accent)", color: "#fff" } : { background: "var(--border)", color: "var(--text-secondary)" }}>{tag}</button>
             ))}
           </div>
         </div>
 
         <div>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2 text-gray-500">Comment</label>
+          <label className="block text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-tertiary)" }}>Comment</label>
           <textarea value={editComment} onChange={(e) => setEditComment(e.target.value)}
             placeholder="What should other students know?" rows={3} maxLength={1000}
-            autoCorrect="off" autoCapitalize="off" spellCheck={false}
-            className="w-full p-3 rounded-xl text-sm resize-none outline-none border border-gray-200" />
+            className="w-full p-3 rounded-xl text-sm resize-none outline-none"
+            style={{ background: "var(--bg-page)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
         </div>
 
         <button onClick={handleSave} disabled={saving}
@@ -241,54 +276,55 @@ function ReviewCard({ review: r, statusStyle, qc, onUpdated }: {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-brand-100 p-4">
+    <div className="rounded-2xl p-4" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
-          <Link href={`/p/${r.professors?.slug}`} className="font-semibold text-sm text-brand-900 hover:text-brand-500 transition">
+          <Link href={`/p/${r.professors?.slug}`} className="font-semibold text-sm transition" style={{ color: "var(--text-primary)" }}>
             {r.professors?.name_en || "Unknown Professor"}
           </Link>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-brand-500 font-medium">{r.courses?.code}</span>
-            <span className="text-xs text-gray-400">·</span>
-            <span className="text-xs text-gray-400">{r.universities?.name_en}</span>
+            <span className="text-xs font-medium" style={{ color: "var(--accent)" }}>{r.courses?.code}</span>
+            <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>·</span>
+            <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{r.universities?.name_en}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {canEdit && (
             <button onClick={() => setEditing(true)}
-              className="text-[10px] font-semibold px-2.5 py-1 rounded-full border border-gray-200 text-gray-500 hover:text-brand-500 hover:border-brand-200 transition">
+              className="text-[10px] font-semibold px-2.5 py-1 rounded-full transition"
+              style={{ color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
               Edit
             </button>
           )}
-          <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${statusStyle(r.display_status)}`}>{r.status_label}</span>
+          <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full" style={statusStyle(r.display_status)}>{r.status_label}</span>
         </div>
       </div>
       <div className="flex items-center gap-4 mb-2">
-        <span className="text-sm">Quality: <span className={`font-bold ${qc(r.rating_quality)}`}>{fmtRating(r.rating_quality)}</span></span>
-        <span className="text-sm">Difficulty: <span className="font-bold text-gray-700">{fmtRating(r.rating_difficulty)}</span></span>
-        {r.would_take_again !== null && <span className="text-xs text-gray-500">{r.would_take_again ? "👍 Would retake" : "👎 Wouldn't retake"}</span>}
+        <span className="text-sm" style={{ color: "var(--text-secondary)" }}>Quality: <span className="font-bold" style={{ color: qColor(r.rating_quality) }}>{fmtRating(r.rating_quality)}</span></span>
+        <span className="text-sm" style={{ color: "var(--text-secondary)" }}>Difficulty: <span className="font-bold" style={{ color: "var(--text-primary)" }}>{fmtRating(r.rating_difficulty)}</span></span>
+        {r.would_take_again !== null && <span className="text-xs" style={{ color: "var(--text-tertiary)" }}>{r.would_take_again ? "👍 Would retake" : "👎 Wouldn't retake"}</span>}
       </div>
       {r.grade_received && (
-        <div className="text-xs text-gray-500 mb-2">Grade: <span className="font-semibold">{r.grade_received}</span></div>
+        <div className="text-xs mb-2" style={{ color: "var(--text-secondary)" }}>Grade: <span className="font-semibold">{r.grade_received}</span></div>
       )}
       {r.tags?.length > 0 && (
         <div className="flex gap-1.5 flex-wrap mb-2">{r.tags.map((t) => (
-          <span key={t} className="text-[10px] text-brand-500 bg-brand-50 px-2 py-0.5 rounded-md">{t}</span>
+          <span key={t} className="text-[10px] px-2 py-0.5 rounded-md" style={{ color: "var(--accent)", background: "var(--accent-soft)" }}>{t}</span>
         ))}</div>
       )}
-      {r.comment && <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">{r.comment}</p>}
-      <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-50">
-        <span className="text-[10px] text-gray-400">{new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
-        <span className="text-[10px] text-gray-400">{r.semester_window}</span>
+      {r.comment && <p className="text-sm leading-relaxed line-clamp-3" style={{ color: "var(--text-primary)" }}>{r.comment}</p>}
+      <div className="flex items-center justify-between mt-3 pt-2" style={{ borderTop: "1px solid var(--border)" }}>
+        <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{new Date(r.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+        <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{r.semester_window}</span>
       </div>
       {(r.display_status === "pending" || r.display_status === "flagged") && (
-        <div className="mt-2 p-2.5 bg-amber-50/50 rounded-lg border border-amber-100">
-          <p className="text-[11px] text-amber-700 leading-relaxed">⏳ Your review is being checked by our moderation team. Most reviews are approved within 24 hours.</p>
+        <div className="mt-2 p-2.5 rounded-lg" style={{ background: "#F59E0B15", border: "1px solid #F59E0B30" }}>
+          <p className="text-[11px] leading-relaxed" style={{ color: "#D97706" }}>⏳ Your review is being checked by our moderation team. Most reviews are approved within 24 hours.</p>
         </div>
       )}
       {r.display_status === "removed" && (
-        <div className="mt-2 p-2.5 bg-red-50/50 rounded-lg border border-red-100">
-          <p className="text-[11px] text-red-600 leading-relaxed">This review was rejected by our moderation team. It may have violated our community guidelines. You can submit a new review for this professor.</p>
+        <div className="mt-2 p-2.5 rounded-lg" style={{ background: "#EF444415", border: "1px solid #EF444430" }}>
+          <p className="text-[11px] leading-relaxed" style={{ color: "#DC2626" }}>This review was rejected by our moderation team. It may have violated our community guidelines. You can submit a new review for this professor.</p>
         </div>
       )}
     </div>

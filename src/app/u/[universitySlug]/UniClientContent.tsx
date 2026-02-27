@@ -5,6 +5,8 @@ import Link from "next/link";
 import { getTagSentiment, getTagStyles } from "@/lib/tagColors";
 import AppleLogo from "@/components/AppleLogo";
 import { smartMatch } from "@/lib/smartSearch";
+import { useApp } from "@/components/Providers";
+import { t } from "@/lib/i18n";
 
 function qualityColor(v: number): string {
   if (v >= 4) return "#22C55E";
@@ -36,6 +38,8 @@ export default function UniClientContent({
 }: {
   uniId: string; uniName: string; uniShortName: string | null; uniSlug: string; professors: any[];
 }) {
+  const { lang } = useApp();
+  const isRtl = lang === "ar";
   const [search, setSearch] = useState("");
 
   const getSurname = (name: string) => {
@@ -63,25 +67,31 @@ export default function UniClientContent({
   }, [search, professors]);
 
   const hasProfessors = professors.length > 0;
+  const arrow = isRtl ? "←" : "→";
 
   return (
     <>
+      {/* Search bar — icon flips side in RTL */}
       <div className="relative mb-5">
-        <svg className="absolute left-3.5 top-1/2 -translate-y-1/2" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2">
+        <svg
+          className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? "right-3.5" : "left-3.5"}`}
+          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.2">
           <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
         </svg>
         <input value={search} onChange={(e) => setSearch(e.target.value)}
-          placeholder={`Search by name or course code at ${uniShortName || uniName}...`}
-          className="w-full pl-10 pr-4 py-3 rounded-xl text-xs outline-none transition-all"
+          placeholder={`${t(lang, "search_at_uni")} ${uniShortName || uniName}...`}
+          className={`w-full py-3 rounded-xl text-xs outline-none transition-all ${isRtl ? "pr-10 pl-4" : "pl-10 pr-4"}`}
           style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
       </div>
 
       <div className="mb-3 flex items-center justify-between">
-        <div className="section-label">{search.trim() ? `${filtered.length} results` : "Professors"}</div>
+        <div className="section-label">
+          {search.trim() ? `${filtered.length} ${t(lang, "results")}` : t(lang, "professors")}
+        </div>
         {hasProfessors && (
           <Link href={`/suggest?type=professor&university=${uniId}&universityName=${encodeURIComponent(uniName)}`}
             className="text-[10px] font-semibold transition-all active:scale-95" style={{ color: "var(--accent)" }}>
-            + Add professor
+            + {t(lang, "add_professor")}
           </Link>
         )}
       </div>
@@ -103,18 +113,18 @@ export default function UniClientContent({
               <div className="shrink-0 flex flex-col items-center">
                 {count > 0 ? (
                   <>
-                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>Quality</div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-tertiary)" }}>{t(lang, "quality")}</div>
                     <div className="w-[56px] h-[56px] rounded-lg flex items-center justify-center" style={{ background: qualityBg(avgQ) }}>
                       <span className="text-[22px] font-extrabold font-display" style={{ color: qualityColor(avgQ) }}>{avgQ.toFixed(1)}</span>
                     </div>
-                    <div className="text-[10px] mt-1" style={{ color: "var(--text-tertiary)" }}>{count} {count === 1 ? "rating" : "ratings"}</div>
+                    <div className="text-[10px] mt-1" style={{ color: "var(--text-tertiary)" }}>{count} {count === 1 ? t(lang, "rating") : t(lang, "ratings")}</div>
                   </>
                 ) : (
                   <>
                     <div className="w-[56px] h-[56px] rounded-full flex items-center justify-center" style={{ border: "2px solid var(--accent)", background: "var(--accent-soft, rgba(217,80,48,0.08))" }}>
                       <AppleLogo size={24} color="var(--accent)" />
                     </div>
-                    <div className="text-[8px] mt-1 text-center leading-tight font-medium" style={{ color: "var(--text-tertiary)" }}>No ratings</div>
+                    <div className="text-[8px] mt-1 text-center leading-tight font-medium" style={{ color: "var(--text-tertiary)" }}>{t(lang, "no_ratings")}</div>
                   </>
                 )}
               </div>
@@ -126,10 +136,10 @@ export default function UniClientContent({
                   <>
                     <div className="flex items-center gap-1 mt-2 flex-wrap">
                       <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{Math.round(retake)}%</span>
-                      <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>would take again</span>
+                      <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{t(lang, "would_take_again")}</span>
                       <span className="text-[10px] mx-1" style={{ color: "var(--border)" }}>|</span>
                       <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{avgD.toFixed(1)}</span>
-                      <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>difficulty</span>
+                      <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>{t(lang, "difficulty")}</span>
                     </div>
                     {topTags.length > 0 && (
                       <div className="flex gap-1.5 mt-2 flex-wrap">
@@ -137,12 +147,12 @@ export default function UniClientContent({
                       </div>
                     )}
                     <div className="text-[10px] mt-2 font-semibold" style={{ color: "var(--accent)" }}>
-                      View ratings →
+                      {t(lang, "view_ratings")} {arrow}
                     </div>
                   </>
                 ) : (
                   <div className="text-[10px] mt-2 font-semibold" style={{ color: "var(--accent)" }}>
-                    Tap to rate →
+                    {t(lang, "tap_to_rate")} {arrow}
                   </div>
                 )}
               </div>
@@ -153,11 +163,11 @@ export default function UniClientContent({
         {filtered.length === 0 && !search.trim() && (
           <div className="text-center py-10" style={{ color: "var(--text-tertiary)" }}>
             <div className="text-3xl mb-2">🎓</div>
-            <p className="text-sm mb-3">No professors added yet</p>
+            <p className="text-sm mb-3">{t(lang, "no_professors_yet")}</p>
             <Link href={`/suggest?type=professor&university=${uniId}&universityName=${encodeURIComponent(uniName)}`}
               className="inline-block px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.97]"
               style={{ background: "var(--accent)", color: "#fff" }}>
-              Add the first professor
+              {t(lang, "add_first_professor")}
             </Link>
           </div>
         )}
@@ -166,7 +176,7 @@ export default function UniClientContent({
           <div className="text-center py-8" style={{ color: "var(--text-tertiary)" }}>
             <p className="text-sm mb-3">No professors match &ldquo;{search}&rdquo;</p>
             <Link href={`/suggest?type=professor&university=${uniId}&universityName=${encodeURIComponent(uniName)}`}
-              className="text-xs font-semibold" style={{ color: "var(--accent)" }}>+ Add this professor</Link>
+              className="text-xs font-semibold" style={{ color: "var(--accent)" }}>+ {t(lang, "add_professor")}</Link>
           </div>
         )}
       </div>

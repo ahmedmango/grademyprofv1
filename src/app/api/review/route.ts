@@ -187,9 +187,7 @@ export async function PUT(req: NextRequest) {
     const supabase = createServiceClient();
     const body = await req.json();
     const anonUserHash = req.headers.get("x-anon-user-hash") || "";
-
-    if (!anonUserHash || anonUserHash.length < 8)
-      return NextResponse.json({ error: "Missing identity" }, { status: 400, headers: NO_STORE_HEADERS });
+    const userId = req.headers.get("x-user-id") || "";
 
     const { review_id, rating_quality, rating_difficulty, would_take_again, grade_received, tags, comment } = body;
 
@@ -198,13 +196,18 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Invalid review ID" }, { status: 400, headers: NO_STORE_HEADERS });
 
     const { data: existing } = await supabase.from("reviews")
-      .select("id, professor_id, anon_user_hash, status")
+      .select("id, professor_id, anon_user_hash, user_id, status")
       .eq("id", review_id).single();
 
     if (!existing)
       return NextResponse.json({ error: "Review not found" }, { status: 404, headers: NO_STORE_HEADERS });
-    if (existing.anon_user_hash !== anonUserHash)
+
+    // Allow edit if anon hash matches OR if the logged-in user_id matches the review's user_id
+    const hashMatch = anonUserHash.length >= 8 && existing.anon_user_hash === anonUserHash;
+    const userMatch = userId && UUID_RE.test(userId) && existing.user_id === userId;
+    if (!hashMatch && !userMatch)
       return NextResponse.json({ error: "Not authorized to edit this review" }, { status: 403, headers: NO_STORE_HEADERS });
+
     if (existing.status === "removed")
       return NextResponse.json({ error: "Cannot edit a rejected review" }, { status: 400, headers: NO_STORE_HEADERS });
 
@@ -225,14 +228,15 @@ export async function PUT(req: NextRequest) {
         .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[REDACTED]")
         .replace(/\+?973\s?\d{4}\s?\d{4}/g, "[REDACTED]");
       updates.comment = cleanComment;
-      const scan = scanContent(cleanComment);
-      if (scan.suggested_status === "removed" || scan.suggested_status === "flagged") {
-        updates.status = "pending";
-      }
     }
 
     if (Object.keys(updates).length === 0)
       return NextResponse.json({ error: "No changes provided" }, { status: 400, headers: NO_STORE_HEADERS });
+
+    // If the review is currently live or shadow, send it back to pending for re-moderation
+    if (existing.status === "live" || existing.status === "shadow") {
+      updates.status = "pending";
+    }
 
     updates.updated_at = new Date().toISOString();
 
@@ -243,11 +247,13 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Failed to update review" }, { status: 500, headers: NO_STORE_HEADERS });
     }
 
+    // Refresh aggregates if review was live (it's now pending, so remove its contribution)
     if (existing.status === "live") {
       await supabase.rpc("refresh_professor_aggregates", { p_professor_id: existing.professor_id });
     }
 
-    return NextResponse.json({ success: true }, { headers: NO_STORE_HEADERS });
+    const wasLive = existing.status === "live" || existing.status === "shadow";
+    return NextResponse.json({ success: true, went_to_moderation: wasLive }, { headers: NO_STORE_HEADERS });
   } catch (err) {
     console.error("Review update error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS });

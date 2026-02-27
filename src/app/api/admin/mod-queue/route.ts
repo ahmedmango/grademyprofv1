@@ -20,7 +20,8 @@ export async function GET(req: NextRequest) {
     .select(`
       id, rating_quality, rating_difficulty, would_take_again,
       attendance_mandatory, uses_textbook, tags, comment, status,
-      toxicity_score, risk_flags, created_at, semester_window, user_id,
+      toxicity_score, risk_flags, created_at, semester_window, user_id, upvote_boost,
+      anon_user_hash,
       professors ( id, name_en, slug ),
       courses ( id, code, title_en ),
       universities ( id, name_en, slug ),

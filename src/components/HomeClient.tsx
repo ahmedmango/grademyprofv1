@@ -65,6 +65,8 @@ export default function HomeClient({
     return short ? { primary: short, secondary: full } : { primary: full, secondary: "" };
   };
 
+  const arrow = lang === "ar" ? "←" : "→";
+
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center px-5">
       {/* Logo + brand */}
@@ -97,7 +99,6 @@ export default function HomeClient({
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setFocused(true)}
             placeholder={lang === "ar" ? "ابحث عن جامعتك..." : "Search for your university..."}
-            autoCorrect="off" autoCapitalize="off" spellCheck={false}
             className="flex-1 bg-transparent text-[16px] outline-none"
             style={{ color: "var(--text-primary)" }}
           />
@@ -135,18 +136,18 @@ export default function HomeClient({
                     <button
                       key={u.id}
                       onClick={() => goToUni(u.slug)}
-                      className="w-full text-left px-4 py-3 flex items-center justify-between transition-all duration-150 active:scale-[0.98]"
-                      style={{ borderTop: "1px solid var(--border)" }}
+                      className="w-full px-4 py-3 flex items-center justify-between transition-all duration-150 active:scale-[0.98]"
+                      style={{ borderTop: "1px solid var(--border)", textAlign: "start" }}
                       onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-soft)"}
                       onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                     >
                       <div>
                         <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{d.primary}</span>
                         {d.secondary && (
-                          <span className="text-xs ml-2" style={{ color: "var(--text-tertiary)" }}>{d.secondary}</span>
+                          <span className="text-xs" style={{ color: "var(--text-tertiary)", marginInlineStart: "0.5rem" }}>{d.secondary}</span>
                         )}
                       </div>
-                      <span className="text-xs" style={{ color: "var(--accent)" }}>→</span>
+                      <span className="text-xs" style={{ color: "var(--accent)" }}>{arrow}</span>
                     </button>
                   );
                 })}
@@ -162,18 +163,18 @@ export default function HomeClient({
                     <button
                       key={u.id}
                       onClick={() => goToUni(u.slug)}
-                      className="w-full text-left px-4 py-2.5 flex items-center justify-between transition-all duration-150 active:scale-[0.98]"
-                      style={{ borderTop: "1px solid var(--border)" }}
+                      className="w-full px-4 py-2.5 flex items-center justify-between transition-all duration-150 active:scale-[0.98]"
+                      style={{ borderTop: "1px solid var(--border)", textAlign: "start" }}
                       onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-soft)"}
                       onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                     >
                       <div>
                         <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{d.primary}</span>
                         {d.secondary && (
-                          <span className="text-xs ml-2" style={{ color: "var(--text-tertiary)" }}>{d.secondary}</span>
+                          <span className="text-xs" style={{ color: "var(--text-tertiary)", marginInlineStart: "0.5rem" }}>{d.secondary}</span>
                         )}
                       </div>
-                      <span className="text-xs" style={{ color: "var(--accent)" }}>→</span>
+                      <span className="text-xs" style={{ color: "var(--accent)" }}>{arrow}</span>
                     </button>
                   );
                 })}
@@ -187,18 +188,18 @@ export default function HomeClient({
                 <button
                   key={u.id}
                   onClick={() => goToUni(u.slug)}
-                  className="w-full text-left px-4 py-3 flex items-center justify-between transition-all duration-150 active:scale-[0.98]"
-                  style={{ borderBottom: "1px solid var(--border)" }}
+                  className="w-full px-4 py-3 flex items-center justify-between transition-all duration-150 active:scale-[0.98]"
+                  style={{ borderBottom: "1px solid var(--border)", textAlign: "start" }}
                   onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-soft)"}
                   onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                 >
                   <div>
                     <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{d.primary}</span>
                     {d.secondary && (
-                      <span className="text-xs ml-2" style={{ color: "var(--text-tertiary)" }}>{d.secondary}</span>
+                      <span className="text-xs" style={{ color: "var(--text-tertiary)", marginInlineStart: "0.5rem" }}>{d.secondary}</span>
                     )}
                   </div>
-                  <span className="text-xs" style={{ color: "var(--accent)" }}>→</span>
+                  <span className="text-xs" style={{ color: "var(--accent)" }}>{arrow}</span>
                 </button>
               );
             })}

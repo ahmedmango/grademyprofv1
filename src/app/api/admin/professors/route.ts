@@ -23,14 +23,23 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from("professors")
-    .select("*, departments ( name_en ), universities ( name_en )")
-    .order("created_at", { ascending: false });
+    .select("id, name_en, name_ar, slug, university_id, department_id, is_active, departments ( name_en ), universities ( name_en )")
+    .order("name_en", { ascending: true });
 
   if (universityId) query = query.eq("university_id", universityId);
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
-  return NextResponse.json({ professors: data }, { headers: NO_STORE_HEADERS });
+
+  // Attach live review counts
+  const ids = (data || []).map((p) => p.id);
+  const { data: rData } = ids.length
+    ? await supabase.from("reviews").select("professor_id").in("professor_id", ids).eq("status", "live")
+    : { data: [] };
+  const countMap: Record<string, number> = {};
+  for (const r of rData || []) countMap[r.professor_id] = (countMap[r.professor_id] || 0) + 1;
+
+  return NextResponse.json({ professors: (data || []).map((p) => ({ ...p, review_count: countMap[p.id] || 0 })) }, { headers: NO_STORE_HEADERS });
 }
 
 export async function POST(req: NextRequest) {

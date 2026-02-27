@@ -41,6 +41,13 @@ function normalizePossible(name: string): string {
   return name.trim().replace(/\s+/g, " ").replace(/\./g, "").toLowerCase();
 }
 
+// Strips common academic title prefixes (Dr., Prof., Mr., etc.) for a broader possible-match check
+const TITLE_PREFIX_RE = /^(dr\.?|prof\.?|professor|asst\.?|assoc\.?|engr\.?|mr\.?|mrs\.?|ms\.?|mx\.?|ir\.?|dato\.?|sir)\s+/i;
+function normalizeStripped(name: string): string {
+  const stripped = name.trim().replace(TITLE_PREFIX_RE, "");
+  return stripped.replace(/\./g, "").replace(/\s+/g, " ").toLowerCase();
+}
+
 export async function POST(req: NextRequest) {
   const admin = await authenticateAdmin(req);
   if (!admin || admin.role === "viewer")
@@ -73,9 +80,10 @@ export async function POST(req: NextRequest) {
     // Load existing professors (name + university + slug) for duplicate detection
     const { data: existingProfs } = await supabase.from("professors").select("name_en, university_id, slug");
 
-    // Build two maps per university: exact and possible name matches
+    // Build three maps per university: exact, possible (no periods), and stripped (no titles)
     const dbExact = new Map<string, Map<string, string>>(); // uniId → normalizedName → original name
     const dbPossible = new Map<string, Map<string, string>>();
+    const dbStripped = new Map<string, Map<string, string>>(); // title-stripped for broader possible match
     // Global slug map for catching slug-level conflicts (DB has a global unique constraint on slug)
     const dbSlugs = new Map<string, string>(); // slug → name_en
 
@@ -83,8 +91,10 @@ export async function POST(req: NextRequest) {
       if (!p.university_id) continue;
       if (!dbExact.has(p.university_id)) dbExact.set(p.university_id, new Map());
       if (!dbPossible.has(p.university_id)) dbPossible.set(p.university_id, new Map());
+      if (!dbStripped.has(p.university_id)) dbStripped.set(p.university_id, new Map());
       dbExact.get(p.university_id)!.set(normalizeExact(p.name_en), p.name_en);
       dbPossible.get(p.university_id)!.set(normalizePossible(p.name_en), p.name_en);
+      dbStripped.get(p.university_id)!.set(normalizeStripped(p.name_en), p.name_en);
       if (p.slug) dbSlugs.set(p.slug, p.name_en);
     }
 
@@ -92,6 +102,7 @@ export async function POST(req: NextRequest) {
     // Within-import tracking: only "new" rows seed these sets
     const importExact = new Map<string, Map<string, string>>();
     const importPossible = new Map<string, Map<string, string>>();
+    const importStripped = new Map<string, Map<string, string>>();
     const importSlugs = new Map<string, string>(); // slug → name_en (global, like the DB constraint)
 
     const counts = { new: 0, possible: 0, exact: 0, errors: 0 };
@@ -121,6 +132,7 @@ export async function POST(req: NextRequest) {
 
       const exactKey = normalizeExact(name);
       const possibleKey = normalizePossible(name);
+      const strippedKey = normalizeStripped(name);
       const slug = slugify(name);
 
       // Check against DB exact name
@@ -131,10 +143,18 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      // Check against DB possible name
+      // Check against DB possible name (period-stripped)
       const dbPossibleForUni = dbPossible.get(universityId);
       if (dbPossibleForUni?.has(possibleKey)) {
         checked.push({ ...row, index: i, university_id: universityId, department_id: departmentId, category: "possible", conflict_with: dbPossibleForUni.get(possibleKey) });
+        counts.possible++;
+        continue;
+      }
+
+      // Check against DB title-stripped name (catches "Dr. Samya Bahram" vs "Samya Bahram")
+      const dbStrippedForUni = dbStripped.get(universityId);
+      if (dbStrippedForUni?.has(strippedKey)) {
+        checked.push({ ...row, index: i, university_id: universityId, department_id: departmentId, category: "possible", conflict_with: dbStrippedForUni.get(strippedKey) });
         counts.possible++;
         continue;
       }
@@ -155,6 +175,14 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Check within-import title-stripped name
+      const importStrippedForUni = importStripped.get(universityId);
+      if (importStrippedForUni?.has(strippedKey)) {
+        checked.push({ ...row, index: i, university_id: universityId, department_id: departmentId, category: "possible", conflict_with: `${importStrippedForUni.get(strippedKey)} (earlier row)` });
+        counts.possible++;
+        continue;
+      }
+
       // Check global slug collision (DB has a global UNIQUE constraint on slug)
       if (dbSlugs.has(slug)) {
         checked.push({ ...row, index: i, university_id: universityId, department_id: departmentId, category: "exact", conflict_with: `${dbSlugs.get(slug)} (slug conflict)` });
@@ -170,8 +198,10 @@ export async function POST(req: NextRequest) {
       // New — seed within-import tracking
       if (!importExact.has(universityId)) importExact.set(universityId, new Map());
       if (!importPossible.has(universityId)) importPossible.set(universityId, new Map());
+      if (!importStripped.has(universityId)) importStripped.set(universityId, new Map());
       importExact.get(universityId)!.set(exactKey, name);
       importPossible.get(universityId)!.set(possibleKey, name);
+      importStripped.get(universityId)!.set(strippedKey, name);
       importSlugs.set(slug, name);
 
       checked.push({ ...row, index: i, university_id: universityId, department_id: departmentId, category: "new" });
