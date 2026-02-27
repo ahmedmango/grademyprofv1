@@ -2,7 +2,7 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = "GradeMyProf <noreply@grademyprofessor.net>";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://grademyprofessor.bh";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://grademyprofessor.net";
 
 function escapeHtml(str: string): string {
   return str
@@ -84,6 +84,50 @@ export async function sendReviewLive(
     }
   } catch (err) {
     console.error("[email] sendReviewLive threw:", err);
+  }
+}
+
+export async function sendReviewMilestone(
+  to: string,
+  username: string,
+  professorName: string,
+  courseCode: string,
+  professorSlug?: string,
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY not set — skipping sendReviewMilestone");
+    return;
+  }
+  console.log(`[email] sendReviewMilestone → to=${to} prof="${professorName}" course="${courseCode}"`);
+  const profileUrl = professorSlug ? `${APP_URL}/p/${professorSlug}` : APP_URL;
+  try {
+    const { data, error } = await resend.emails.send({
+      from: FROM,
+      to,
+      subject: "5 students found your review helpful ★",
+      html: baseTemplate(`
+        <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#111110">Your review is making a difference!</h1>
+        <p style="margin:0 0 20px;font-size:15px;color:#4b5563;line-height:1.7">
+          Hi <strong style="color:#111110">${escapeHtml(username)}</strong> — your review for
+          <strong style="color:#111110">${escapeHtml(professorName)}</strong>${courseCode ? ` (${escapeHtml(courseCode)})` : ""}
+          has just been marked helpful by <strong style="color:#111110">5 students</strong>.
+        </p>
+        <p style="margin:0 0 28px;font-size:14px;color:#6b7280;line-height:1.7">
+          Real feedback like yours helps students make smarter choices at enrollment. Keep it up.
+        </p>
+        <p style="margin:0 0 20px;font-size:12px;color:#9ca3af;line-height:1.6">
+          Your review is posted 100% anonymously — your name and email are never shared publicly.
+        </p>
+        <a href="${profileUrl}" style="color:#E87B35;font-size:14px;font-weight:600;text-decoration:none">View →</a>
+      `),
+    });
+    if (error) {
+      console.error("[email] sendReviewMilestone Resend error:", JSON.stringify(error));
+    } else {
+      console.log("[email] sendReviewMilestone delivered, id:", data?.id);
+    }
+  } catch (err) {
+    console.error("[email] sendReviewMilestone threw:", err);
   }
 }
 

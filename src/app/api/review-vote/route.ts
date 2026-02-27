@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
+import { sendReviewMilestone } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,6 +36,42 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to vote" }, { status: 500, headers: NO_STORE_HEADERS });
     }
 
+    // 5-upvote milestone email — awaited before response so Vercel doesn't kill it
+    if (vote === "up") {
+      try {
+        const { count: upCount } = await supabase
+          .from("review_votes")
+          .select("*", { count: "exact", head: true })
+          .eq("review_id", review_id)
+          .eq("vote", "up");
+
+        if (upCount === 5) {
+          const { data: review } = await supabase
+            .from("reviews")
+            .select("user_id, courses ( code ), professors ( name_en, slug )")
+            .eq("id", review_id)
+            .single();
+
+          if (review?.user_id) {
+            const { data: author } = await supabase
+              .from("user_accounts")
+              .select("email, username")
+              .eq("id", review.user_id)
+              .single();
+
+            if (author?.email) {
+              const profName = (review as any).professors?.name_en || "the professor";
+              const profSlug = (review as any).professors?.slug || "";
+              const courseCode = (review as any).courses?.code || "";
+              await sendReviewMilestone(author.email, author.username, profName, courseCode, profSlug);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("[review-vote] milestone email failed:", err);
+      }
+    }
+
     return NextResponse.json({ action: "added", vote }, { headers: NO_STORE_HEADERS });
   } catch (err) {
     console.error("Vote error:", err);
@@ -53,16 +90,23 @@ export async function GET(req: NextRequest) {
 
     const ids = reviewIds.split(",").filter(Boolean);
 
-    const { data: votes } = await supabase
-      .from("review_votes")
-      .select("review_id, vote")
-      .in("review_id", ids);
+    const [votesResult, boostResult] = await Promise.all([
+      supabase.from("review_votes").select("review_id, vote").in("review_id", ids),
+      supabase.from("reviews").select("id, upvote_boost").in("id", ids),
+    ]);
 
     const counts: Record<string, { up: number; down: number }> = {};
     for (const id of ids) counts[id] = { up: 0, down: 0 };
-    for (const v of votes || []) {
+    for (const v of votesResult.data || []) {
       if (!counts[v.review_id]) counts[v.review_id] = { up: 0, down: 0 };
       counts[v.review_id][v.vote as "up" | "down"]++;
+    }
+    // Add admin upvote boost
+    for (const r of boostResult.data || []) {
+      if (r.upvote_boost > 0) {
+        if (!counts[r.id]) counts[r.id] = { up: 0, down: 0 };
+        counts[r.id].up += r.upvote_boost;
+      }
     }
 
     let userVotes: Record<string, string> = {};
