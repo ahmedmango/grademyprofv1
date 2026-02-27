@@ -43,19 +43,27 @@ export async function GET(req: NextRequest) {
   const courses = ((professor as any).professor_courses || []).map((pc: any) => pc.courses).filter(Boolean);
   let courseStats: any[] = [];
   if (courses.length > 1) {
-    for (const course of courses) {
-      const { data: cr } = await supabase.from("reviews").select("rating_quality, rating_difficulty")
-        .eq("professor_id", professor.id).eq("course_id", course.id).eq("status", "live");
-      if (cr && cr.length > 0) {
-        courseStats.push({
-          course_id: course.id, code: course.code, title_en: course.title_en,
-          review_count: cr.length,
-          avg_quality: Math.round(cr.reduce((s: number, r: any) => s + Number(r.rating_quality), 0) / cr.length * 100) / 100,
-          avg_difficulty: Math.round(cr.reduce((s: number, r: any) => s + Number(r.rating_difficulty), 0) / cr.length * 100) / 100,
-        });
-      }
+    // Single query instead of one per course
+    const { data: allCourseReviews } = await supabase
+      .from("reviews")
+      .select("course_id, rating_quality, rating_difficulty")
+      .eq("professor_id", professor.id)
+      .eq("status", "live");
+    const statsMap: Record<string, { q: number[]; d: number[] }> = {};
+    for (const r of allCourseReviews || []) {
+      if (!statsMap[r.course_id]) statsMap[r.course_id] = { q: [], d: [] };
+      statsMap[r.course_id].q.push(Number(r.rating_quality));
+      statsMap[r.course_id].d.push(Number(r.rating_difficulty));
     }
-    courseStats.sort((a, b) => b.review_count - a.review_count);
+    courseStats = courses
+      .map((course: any) => {
+        const s = statsMap[course.id];
+        if (!s || s.q.length === 0) return null;
+        const avg = (arr: number[]) => Math.round(arr.reduce((a, b) => a + b, 0) / arr.length * 100) / 100;
+        return { course_id: course.id, code: course.code, title_en: course.title_en, review_count: s.q.length, avg_quality: avg(s.q), avg_difficulty: avg(s.d) };
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => b.review_count - a.review_count);
   }
 
   return NextResponse.json({

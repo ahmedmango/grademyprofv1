@@ -142,27 +142,29 @@ export async function POST(req: NextRequest) {
       } catch (err) { console.error("[email] auto-approval notify failed:", err); }
     }
 
-    // Revalidate professor page and university page so changes appear immediately
-    try {
-      const profSlug = profResult.data.slug;
-      const paths: string[] = [];
-      if (profSlug) {
-        revalidatePath(`/p/${profSlug}`, "layout");
-        paths.push(`/p/${profSlug}`);
-      }
-      const { data: uni } = await supabase
-        .from("universities")
-        .select("slug")
-        .eq("id", profResult.data.university_id)
-        .single();
-      if (uni) {
-        revalidatePath(`/u/${uni.slug}`, "layout");
-        paths.push(`/u/${uni.slug}`);
-      }
-      revalidatePath("/", "layout");
-      paths.push("/");
-      console.log("REVALIDATE TRIGGERED [review submission]", paths);
-    } catch {}
+    // Revalidate affected pages — only when review is live to avoid pointless rebuilds
+    if (status === "live") {
+      try {
+        const profSlug = profResult.data.slug;
+        const paths: string[] = [];
+        if (profSlug) {
+          revalidatePath(`/p/${profSlug}`, "layout");
+          paths.push(`/p/${profSlug}`);
+        }
+        const { data: uni } = await supabase
+          .from("universities")
+          .select("slug")
+          .eq("id", profResult.data.university_id)
+          .single();
+        if (uni) {
+          revalidatePath(`/u/${uni.slug}`, "layout");
+          paths.push(`/u/${uni.slug}`);
+        }
+        revalidatePath("/", "layout");
+        paths.push("/");
+        console.log("REVALIDATE TRIGGERED [review submission]", paths);
+      } catch {}
+    }
 
     const messages: Record<string, string> = {
       live: "Your review has been published! Thank you for helping fellow students.",
@@ -228,15 +230,24 @@ export async function PUT(req: NextRequest) {
         .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[REDACTED]")
         .replace(/\+?973\s?\d{4}\s?\d{4}/g, "[REDACTED]");
       updates.comment = cleanComment;
+      // Re-scan on edit — prevents bypassing moderation via post-approval edits
+      const scan = scanContent(cleanComment);
+      updates.toxicity_score = scan.toxicity_score;
+      updates.risk_flags = scan.risk_flags;
+      if (scan.suggested_status === "removed") {
+        updates.status = "removed";
+      } else if (scan.suggested_status === "flagged") {
+        updates.status = "flagged";
+      } else if (existing.status === "live" || existing.status === "shadow") {
+        updates.status = "pending";
+      }
+    } else if (existing.status === "live" || existing.status === "shadow") {
+      // Rating/tag edits on live reviews also re-queue for moderation
+      updates.status = "pending";
     }
 
     if (Object.keys(updates).length === 0)
       return NextResponse.json({ error: "No changes provided" }, { status: 400, headers: NO_STORE_HEADERS });
-
-    // If the review is currently live or shadow, send it back to pending for re-moderation
-    if (existing.status === "live" || existing.status === "shadow") {
-      updates.status = "pending";
-    }
 
     updates.updated_at = new Date().toISOString();
 

@@ -46,18 +46,14 @@ export async function GET(req: NextRequest) {
   const { data: statusCounts } = await supabase
     .rpc("get_review_status_counts");
 
-  // If RPC doesn't exist, do it manually
+  // If RPC doesn't exist, fetch all status counts in parallel (not sequentially)
   let counts = statusCounts;
   if (!counts) {
-    const statuses = ["pending", "flagged", "live", "shadow", "removed"];
-    counts = {};
-    for (const s of statuses) {
-      const { count: c } = await supabase
-        .from("reviews")
-        .select("*", { count: "exact", head: true })
-        .eq("status", s);
-      counts[s] = c || 0;
-    }
+    const statuses = ["pending", "flagged", "live", "shadow", "removed"] as const;
+    const results = await Promise.all(
+      statuses.map((s) => supabase.from("reviews").select("*", { count: "exact", head: true }).eq("status", s))
+    );
+    counts = Object.fromEntries(statuses.map((s, i) => [s, results[i].count || 0]));
   }
 
   return NextResponse.json({

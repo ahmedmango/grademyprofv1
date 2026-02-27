@@ -7,8 +7,11 @@ export interface AdminSession {
   role: string;
 }
 
-const ADMIN_JWT_SECRET =
-  process.env.ADMIN_JWT_SECRET || "dev-admin-jwt-secret-change-in-prod";
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || (
+  process.env.NODE_ENV === "production"
+    ? (() => { console.error("CRITICAL: ADMIN_JWT_SECRET is not set in production"); return ""; })()
+    : "dev-admin-jwt-secret"
+);
 
 export async function authenticateAdmin(req: NextRequest): Promise<AdminSession | null> {
   const authHeader = req.headers.get("authorization");

@@ -3,8 +3,11 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { signJWT } from "@/lib/jwt";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
-const ADMIN_JWT_SECRET =
-  process.env.ADMIN_JWT_SECRET || "dev-admin-jwt-secret-change-in-prod";
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || (
+  process.env.NODE_ENV === "production"
+    ? (() => { console.error("CRITICAL: ADMIN_JWT_SECRET is not set in production"); return ""; })()
+    : "dev-admin-jwt-secret"
+);
 
 export async function POST(req: NextRequest) {
   try {

@@ -4,8 +4,11 @@ import { validateUsername, validateEmail, validatePassword } from "@/lib/validat
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 import { signJWT } from "@/lib/jwt";
 
-const SESSION_SECRET =
-  process.env.SESSION_SECRET || "dev-session-secret-change-in-prod";
+const SESSION_SECRET = process.env.SESSION_SECRET || (
+  process.env.NODE_ENV === "production"
+    ? (() => { console.error("CRITICAL: SESSION_SECRET is not set in production"); return ""; })()
+    : "dev-session-secret"
+);
 const COOKIE_NAME = "gmp_session";
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
 

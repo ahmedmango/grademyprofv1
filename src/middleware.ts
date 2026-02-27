@@ -10,7 +10,7 @@ import { Redis } from "@upstash/redis";
 
 type Limiter = { check: (ip: string) => Promise<boolean> };
 
-function makeUpstashLimiters(): { write: Limiter; api: Limiter; admin: Limiter } | null {
+function makeUpstashLimiters(): { write: Limiter; api: Limiter; admin: Limiter; auth: Limiter } | null {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
@@ -34,6 +34,7 @@ function makeUpstashLimiters(): { write: Limiter; api: Limiter; admin: Limiter }
     write: make("write", 20),
     api: make("api", 120),
     admin: make("admin", 30),
+    auth: make("auth", 5), // strict brute-force limit for login endpoints
   };
 }
 
@@ -57,7 +58,7 @@ function inMemoryLimit(key: string, limit: number): boolean {
 const upstash = makeUpstashLimiters();
 
 async function allowed(
-  limiterKey: "write" | "api" | "admin",
+  limiterKey: "write" | "api" | "admin" | "auth",
   ip: string,
   fallbackLimit: number,
 ): Promise<boolean> {
@@ -122,6 +123,13 @@ export async function middleware(req: NextRequest) {
     if (pathname.startsWith("/api/admin/")) {
       if (!(await allowed("admin", ip, 30))) {
         return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+      }
+    }
+
+    // Strict brute-force protection on admin login (5 attempts/min per IP)
+    if (pathname === "/api/admin/auth") {
+      if (!(await allowed("auth", ip, 5))) {
+        return NextResponse.json({ error: "Too many login attempts. Try again later." }, { status: 429 });
       }
     }
   }
