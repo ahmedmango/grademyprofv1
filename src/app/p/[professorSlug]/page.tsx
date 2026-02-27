@@ -5,7 +5,13 @@ import ProfessorGatedWrapper from "./ProfessorGatedWrapper";
 
 export const revalidate = 30;
 
-export default async function ProfessorPage({ params }: { params: { professorSlug: string } }) {
+export default async function ProfessorPage({
+  params,
+  searchParams,
+}: {
+  params: { professorSlug: string };
+  searchParams: { semester?: string };
+}) {
   const supabase = createServerClient();
 
   const { data: prof } = await supabase
@@ -29,13 +35,36 @@ export default async function ProfessorPage({ params }: { params: { professorSlu
   const uni = (prof as any).universities;
   const courses = ((prof as any).professor_courses || []).map((pc: any) => pc.courses).filter(Boolean);
 
-  const { data: reviews } = await supabase
+  // Get distinct semesters for this professor's live reviews
+  const { data: semesterRows } = await supabase
     .from("reviews")
-    .select("id, rating_quality, rating_difficulty, would_take_again, tags, comment, grade_received, created_at, courses ( code )")
+    .select("semester_window")
+    .eq("professor_id", prof.id)
+    .eq("status", "live")
+    .not("semester_window", "is", null)
+    .order("semester_window", { ascending: false });
+
+  const semesters: string[] = [
+    ...new Set((semesterRows || []).map((r: any) => r.semester_window).filter(Boolean)),
+  ];
+
+  const activeSemester = searchParams.semester && semesters.includes(searchParams.semester)
+    ? searchParams.semester
+    : null;
+
+  let reviewQuery = supabase
+    .from("reviews")
+    .select("id, rating_quality, rating_difficulty, would_take_again, tags, comment, grade_received, created_at, semester_window, courses ( code )")
     .eq("professor_id", prof.id)
     .eq("status", "live")
     .order("created_at", { ascending: false })
-    .limit(30);
+    .limit(50);
+
+  if (activeSemester) {
+    reviewQuery = reviewQuery.eq("semester_window", activeSemester);
+  }
+
+  const { data: reviews } = await reviewQuery;
 
   const jsonLd = agg.review_count > 0 ? {
     "@context": "https://schema.org",
@@ -72,6 +101,7 @@ export default async function ProfessorPage({ params }: { params: { professorSlu
         wouldTakeAgainPct={Number(agg.would_take_again_pct)} reviewCount={agg.review_count || 0}
         ratingDist={agg.rating_dist || {}} topTags={agg.top_tags || []}
         tagDist={agg.tag_dist || {}} courses={courses} reviews={reviews || []}
+        semesters={semesters} activeSemester={activeSemester}
       />
     </div>
   );

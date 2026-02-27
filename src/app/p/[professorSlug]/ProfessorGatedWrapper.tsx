@@ -10,6 +10,7 @@ export default function ProfessorGatedWrapper(props: {
   uniName: string; uniSlug: string; avgQuality: number; avgDifficulty: number;
   wouldTakeAgainPct: number; reviewCount: number; ratingDist: Record<string, number>;
   topTags: string[]; tagDist: Record<string, number>; courses: any[]; reviews: any[];
+  semesters: string[]; activeSemester: string | null;
 }) {
   const { isUnlocked, loading, reviewCount: userReviewCount, approvedCount } = useGate();
 

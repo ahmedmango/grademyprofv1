@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useRouter } from "next/navigation";
 import RateButton from "@/components/RateButton";
 import ReviewVoteButtons, { useReviewVotes } from "@/components/ReviewVoteButtons";
 import { useUser } from "@/components/UserProvider";
@@ -81,6 +82,8 @@ export default function ProfessorClientContent({
   tagDist,
   courses,
   reviews,
+  semesters,
+  activeSemester,
 }: {
   profName: string;
   profSlug: string;
@@ -97,9 +100,18 @@ export default function ProfessorClientContent({
   tagDist: Record<string, number>;
   courses: any[];
   reviews: any[];
+  semesters: string[];
+  activeSemester: string | null;
 }) {
   const { lang } = useApp();
   const isRtl = lang === "ar";
+  const router = useRouter();
+
+  function formatSemester(sw: string): string {
+    const [year, season] = sw.split("-");
+    const label = season === "spring" ? "Spring" : season === "summer" ? "Summer" : "Fall";
+    return `${label} ${year}`;
+  }
 
   const DIST_LABELS = [
     { key: "5", label: t(lang, "dist_awesome") },
@@ -261,8 +273,51 @@ export default function ProfessorClientContent({
 
       {/* Reviews */}
       <div className="px-5 mb-5">
-        <div className="section-label mb-3">{reviewCount} {reviewCount === 1 ? t(lang, "student_rating") : t(lang, "student_ratings")}</div>
-        <div className="space-y-3">
+        <div className="flex items-center justify-between mb-3">
+          <div className="section-label">{activeSemester ? reviews.length : reviewCount} {(activeSemester ? reviews.length : reviewCount) === 1 ? t(lang, "student_rating") : t(lang, "student_ratings")}</div>
+        </div>
+
+        {/* Semester filter */}
+        {semesters.length > 1 && (
+          <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 -mx-1 px-1 scrollbar-none">
+            <button
+              onClick={() => router.push(`/p/${profSlug}`)}
+              className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95"
+              style={!activeSemester ? {
+                background: "var(--accent)",
+                color: "#fff",
+                border: "1.5px solid var(--accent)",
+              } : {
+                background: "transparent",
+                color: "var(--text-tertiary)",
+                border: "1.5px solid var(--border)",
+              }}
+            >
+              All
+            </button>
+            {semesters.map((sw) => (
+              <button
+                key={sw}
+                onClick={() => router.push(`/p/${profSlug}?semester=${sw}`)}
+                className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95"
+                style={activeSemester === sw ? {
+                  background: "var(--accent)",
+                  color: "#fff",
+                  border: "1.5px solid var(--accent)",
+                } : {
+                  background: "transparent",
+                  color: "var(--text-tertiary)",
+                  border: "1.5px solid var(--border)",
+                }}
+              >
+                {formatSemester(sw)}
+              </button>
+            ))}
+          </div>
+        )}
+
+
+        <div className="space-y-3 mt-1">
           {reviews.map((r: any) => {
             const classification = r.grade_received ? getGradeClassification(r.grade_received) : null;
             return (
@@ -298,13 +353,20 @@ export default function ProfessorClientContent({
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       {r.courses?.code && (
                         <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{r.courses.code}</span>
                       )}
-                      <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
-                        {new Date(r.created_at).toLocaleDateString(dateLocale, { month: "short", day: "numeric", year: "numeric" })}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {r.semester_window && (
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+                            {formatSemester(r.semester_window)}
+                          </span>
+                        )}
+                        <span className="text-[10px]" style={{ color: "var(--text-tertiary)" }}>
+                          {new Date(r.created_at).toLocaleDateString(dateLocale, { month: "short", year: "numeric" })}
+                        </span>
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
                       {r.would_take_again !== null && (
