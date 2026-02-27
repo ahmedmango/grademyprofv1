@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = "GradeMyProf <noreply@grademyprofessor.bh>";
+const FROM = "GradeMyProf <noreply@grademyprofessor.net>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://grademyprofessor.bh";
 
 function escapeHtml(str: string): string {
