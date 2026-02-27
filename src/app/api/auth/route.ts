@@ -2,11 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { validateUsername, validateEmail, validatePassword } from "@/lib/validation";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
+import { signJWT } from "@/lib/jwt";
 
-function hashPassword(password: string): string {
-  // Simple hash for comparison — in production use bcrypt
-  // We'll use Supabase's crypt function for actual hashing
-  return password;
+const SESSION_SECRET =
+  process.env.SESSION_SECRET || "dev-session-secret-change-in-prod";
+const COOKIE_NAME = "gmp_session";
+const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
+
+function makeSessionCookie(res: NextResponse, token: string) {
+  res.cookies.set({
+    name: COOKIE_NAME,
+    value: token,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: COOKIE_MAX_AGE,
+  });
+}
+
+async function buildSessionToken(user: { id: string; username: string; email: string }) {
+  const now = Math.floor(Date.now() / 1000);
+  return signJWT(
+    { sub: user.id, username: user.username, email: user.email, iat: now, exp: now + COOKIE_MAX_AGE },
+    SESSION_SECRET,
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -16,38 +36,38 @@ export async function POST(req: NextRequest) {
 
     const supabase = createServiceClient();
 
+    if (action === "logout") {
+      const res = NextResponse.json({ success: true }, { headers: NO_STORE_HEADERS });
+      res.cookies.set({ name: COOKIE_NAME, value: "", httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 0 });
+      return res;
+    }
+
     if (action === "register") {
       const { username, email, password, confirm_password, anon_user_hash, accepted_terms } = body;
 
-      // Validate terms acceptance
       if (!accepted_terms) {
         return NextResponse.json({ error: "You must accept the Terms of Service and Privacy Policy" }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
-      // Validate username
       const usernameCheck = validateUsername(username || "");
       if (!usernameCheck.valid) {
         return NextResponse.json({ error: usernameCheck.error }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
-      // Validate email
       const emailCheck = validateEmail(email || "");
       if (!emailCheck.valid) {
         return NextResponse.json({ error: emailCheck.error }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
-      // Validate password
       const passwordCheck = validatePassword(password || "");
       if (!passwordCheck.valid) {
         return NextResponse.json({ error: passwordCheck.error }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
-      // Confirm password match
       if (password !== confirm_password) {
         return NextResponse.json({ error: "Passwords do not match" }, { status: 400, headers: NO_STORE_HEADERS });
       }
 
-      // Check if username taken
       const { data: existingUser } = await supabase
         .from("user_accounts")
         .select("id")
@@ -58,7 +78,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Username is already taken" }, { status: 409, headers: NO_STORE_HEADERS });
       }
 
-      // Check if email taken
       const { data: existingEmail } = await supabase
         .from("user_accounts")
         .select("id")
@@ -69,7 +88,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Email is already registered" }, { status: 409, headers: NO_STORE_HEADERS });
       }
 
-      // Create account using Supabase crypt for password hashing
       const { data: newUser, error: insertError } = await supabase.rpc("create_user_account", {
         p_username: username.trim().toLowerCase(),
         p_email: email.trim().toLowerCase(),
@@ -82,15 +100,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Failed to create account" }, { status: 500, headers: NO_STORE_HEADERS });
       }
 
-      return NextResponse.json({
-        success: true,
-        user: {
-          id: newUser,
-          username: username.trim().toLowerCase(),
-          email: email.trim().toLowerCase(),
-        },
-        message: "Account created successfully",
-      }, { status: 201, headers: NO_STORE_HEADERS });
+      const user = {
+        id: newUser,
+        username: username.trim().toLowerCase(),
+        email: email.trim().toLowerCase(),
+      };
+      const token = await buildSessionToken(user);
+      const res = NextResponse.json({ success: true, user, message: "Account created successfully" }, { status: 201, headers: NO_STORE_HEADERS });
+      makeSessionCookie(res, token);
+      return res;
 
     } else if (action === "login") {
       const { email, password } = body;
@@ -128,14 +146,11 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Account has been suspended" }, { status: 403, headers: NO_STORE_HEADERS });
       }
 
-      return NextResponse.json({
-        success: true,
-        user: {
-          id: userData.id,
-          username: userData.username,
-          email: userData.email,
-        },
-      }, { headers: NO_STORE_HEADERS });
+      const userObj = { id: userData.id, username: userData.username, email: userData.email };
+      const token = await buildSessionToken(userObj);
+      const res = NextResponse.json({ success: true, user: userObj }, { headers: NO_STORE_HEADERS });
+      makeSessionCookie(res, token);
+      return res;
 
     } else {
       return NextResponse.json({ error: "Invalid action" }, { status: 400, headers: NO_STORE_HEADERS });

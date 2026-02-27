@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createServiceClient } from "@/lib/supabase/server";
+import { verifyJWT } from "@/lib/jwt";
 
 export interface AdminSession {
   id: string;
@@ -7,33 +7,21 @@ export interface AdminSession {
   role: string;
 }
 
-// Simple admin auth via Authorization header with admin secret + email
-// Header format: "Bearer <ADMIN_SECRET>:<admin_email>"
-// In production, replace with proper Supabase Auth or NextAuth
+const ADMIN_JWT_SECRET =
+  process.env.ADMIN_JWT_SECRET || "dev-admin-jwt-secret-change-in-prod";
+
 export async function authenticateAdmin(req: NextRequest): Promise<AdminSession | null> {
   const authHeader = req.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
 
   const token = authHeader.slice(7);
-  const [secret, email] = token.split(":");
+  const payload = await verifyJWT(token, ADMIN_JWT_SECRET);
+  if (!payload) return null;
 
-  if (secret !== process.env.ADMIN_SECRET || !email) return null;
+  const id = payload.sub as string;
+  const email = payload.email as string;
+  const role = payload.role as string;
+  if (!id || !email || !role) return null;
 
-  const supabase = createServiceClient();
-  const { data: admin } = await supabase
-    .from("admin_users")
-    .select("id, email, role")
-    .eq("email", email)
-    .single();
-
-  if (!admin) return null;
-
-  return { id: admin.id, email: admin.email, role: admin.role };
-}
-
-// For use in admin page (client-side stores credentials in sessionStorage)
-export function getAdminAuthHeader(email: string): string {
-  // In client, we read the secret from login form — stored in sessionStorage
-  const secret = typeof window !== "undefined" ? sessionStorage.getItem("admin_secret") : "";
-  return `Bearer ${secret}:${email}`;
+  return { id, email, role };
 }

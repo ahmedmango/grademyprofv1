@@ -9,24 +9,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const savedEmail = sessionStorage.getItem("admin_email");
-    const savedSecret = sessionStorage.getItem("admin_secret");
-    if (savedEmail && savedSecret) {
-      setEmail(savedEmail);
-      setSecret(savedSecret);
-      setAuthed(true);
-    }
+    if (sessionStorage.getItem("admin_token")) setAuthed(true);
   }, []);
 
   const handleLogin = async () => {
     setError("");
     try {
-      const res = await fetch("/api/admin/stats", {
-        headers: { Authorization: `Bearer ${secret}:${email}` },
+      const res = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, secret }),
       });
       if (res.ok) {
-        sessionStorage.setItem("admin_email", email);
-        sessionStorage.setItem("admin_secret", secret);
+        const { token } = await res.json();
+        sessionStorage.setItem("admin_token", token);
         setAuthed(true);
       } else {
         setError("Invalid credentials");
@@ -70,7 +66,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center justify-between mb-2 sm:mb-0">
           <span className="font-bold text-brand-600 text-sm">GMP Admin</span>
           <button
-            onClick={() => { sessionStorage.clear(); setAuthed(false); }}
+            onClick={() => { sessionStorage.removeItem("admin_token"); setAuthed(false); }}
             className="text-sm text-gray-400 hover:text-red-500"
           >
             Logout

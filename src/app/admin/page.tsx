@@ -11,10 +11,8 @@ export default function AdminDashboard() {
   }, []);
 
   const fetchStats = async () => {
-    const email = sessionStorage.getItem("admin_email");
-    const secret = sessionStorage.getItem("admin_secret");
     const res = await fetch("/api/admin/stats", {
-      headers: { Authorization: `Bearer ${secret}:${email}` },
+      headers: { Authorization: `Bearer ${sessionStorage.getItem("admin_token") ?? ""}` },
     });
     if (res.ok) setStats(await res.json());
     setLoading(false);

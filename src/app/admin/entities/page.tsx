@@ -14,9 +14,7 @@ export default function EntitiesPage() {
   const [departments, setDepartments] = useState<Entity[]>([]);
 
   const authHeader = useCallback(() => {
-    const email = sessionStorage.getItem("admin_email");
-    const secret = sessionStorage.getItem("admin_secret");
-    return `Bearer ${secret}:${email}`;
+    return `Bearer ${sessionStorage.getItem("admin_token") ?? ""}`;
   }, []);
 
   const fetchItems = useCallback(async () => {

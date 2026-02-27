@@ -17,9 +17,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
 
   const authHeader = useCallback(() => {
-    const email = sessionStorage.getItem("admin_email");
-    const secret = sessionStorage.getItem("admin_secret");
-    return `Bearer ${secret}:${email}`;
+    return `Bearer ${sessionStorage.getItem("admin_token") ?? ""}`;
   }, []);
 
   useEffect(() => {
@@ -36,10 +34,8 @@ export default function AdminUsersPage() {
   }, [authHeader]);
 
   const exportCSV = async () => {
-    const email = sessionStorage.getItem("admin_email");
-    const secret = sessionStorage.getItem("admin_secret");
     const res = await fetch("/api/admin/users?format=csv", {
-      headers: { Authorization: `Bearer ${secret}:${email}` },
+      headers: { Authorization: `Bearer ${sessionStorage.getItem("admin_token") ?? ""}` },
     });
     if (!res.ok) return;
     const blob = await res.blob();

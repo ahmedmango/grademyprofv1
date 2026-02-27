@@ -37,18 +37,17 @@ export function useUser() {
   return useContext(UserContext);
 }
 
-const STORAGE_KEY = "gmp_user";
-
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Restore session from httpOnly cookie via server endpoint
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setUser(JSON.parse(saved));
-    } catch {}
-    setLoading(false);
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => { if (d.user) setUser(d.user); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -61,7 +60,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (res.ok && data.success) {
         setUser(data.user);
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user)); } catch {}
         return { success: true };
       }
       return { success: false, error: data.error || "Login failed" };
@@ -80,7 +78,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const data = await res.json();
       if (res.ok && data.success) {
         setUser(data.user);
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data.user)); } catch {}
         return { success: true };
       }
       return { success: false, error: data.error || "Registration failed" };
@@ -91,7 +88,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    // Clear the httpOnly cookie server-side (fire-and-forget)
+    fetch("/api/auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "logout" }),
+    }).catch(() => {});
   };
 
   return (

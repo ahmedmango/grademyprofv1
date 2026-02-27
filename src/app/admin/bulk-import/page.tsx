@@ -47,9 +47,7 @@ export default function BulkImportPage() {
   const [showReady, setShowReady] = useState(false);
 
   const authHeader = useCallback(() => {
-    const email = sessionStorage.getItem("admin_email");
-    const secret = sessionStorage.getItem("admin_secret");
-    return `Bearer ${secret}:${email}`;
+    return `Bearer ${sessionStorage.getItem("admin_token") ?? ""}`;
   }, []);
 
   useEffect(() => {
