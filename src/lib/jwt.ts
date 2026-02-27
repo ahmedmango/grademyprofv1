@@ -14,10 +14,13 @@ function bufToBase64Url(buf: ArrayBuffer): string {
     .replace(/=/g, "");
 }
 
-function base64UrlToUint8(str: string): Uint8Array {
+function base64UrlToUint8(str: string): Uint8Array<ArrayBuffer> {
   const padded = str.replace(/-/g, "+").replace(/_/g, "/");
   const raw = atob(padded.padEnd(padded.length + (4 - (padded.length % 4)) % 4, "="));
-  const buf = new Uint8Array(raw.length);
+  // Use an explicit ArrayBuffer so TypeScript infers Uint8Array<ArrayBuffer>
+  // (not Uint8Array<ArrayBufferLike>), satisfying crypto.subtle's BufferSource type.
+  const ab = new ArrayBuffer(raw.length);
+  const buf = new Uint8Array(ab);
   for (let i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
   return buf;
 }
