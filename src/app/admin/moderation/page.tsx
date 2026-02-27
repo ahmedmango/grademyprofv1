@@ -8,6 +8,8 @@ type EditData = {
   would_take_again?: boolean | null;
   tags?: string[];
   comment?: string;
+  course_code?: string;
+  course_title?: string;
 };
 
 type Review = {
@@ -239,6 +241,8 @@ function ReviewModCard({
       would_take_again: review.would_take_again,
       tags: review.tags ?? [],
       comment: review.comment ?? "",
+      course_code: review.courses?.code ?? "",
+      course_title: review.courses?.title_en ?? "",
     });
     setEditing(true);
   };
@@ -408,6 +412,26 @@ function ReviewModCard({
                     <option value="false">No</option>
                     <option value="null">N/A</option>
                   </select>
+                </label>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <label className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                  <span className="text-xs font-semibold text-gray-500">Course code</span>
+                  <input
+                    type="text" maxLength={20}
+                    value={draft.course_code ?? ""}
+                    onChange={(e) => setDraft((d) => ({ ...d, course_code: e.target.value.toUpperCase() }))}
+                    className="px-2 py-1 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 flex-[3] min-w-[160px]">
+                  <span className="text-xs font-semibold text-gray-500">Course name</span>
+                  <input
+                    type="text" maxLength={120}
+                    value={draft.course_title ?? ""}
+                    onChange={(e) => setDraft((d) => ({ ...d, course_title: e.target.value.toUpperCase() }))}
+                    className="w-full px-2 py-1 border border-gray-300 rounded-lg text-sm outline-none focus:border-blue-400"
+                  />
                 </label>
               </div>
               <label className="flex flex-col gap-1">

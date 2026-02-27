@@ -45,11 +45,11 @@ export async function PATCH(req: NextRequest) {
   const admin = await authenticateAdmin(req);
   if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_STORE_HEADERS });
 
-  const { review_id, rating_quality, rating_difficulty, would_take_again, tags, comment } = await req.json();
+  const { review_id, rating_quality, rating_difficulty, would_take_again, tags, comment, course_code, course_title } = await req.json();
   if (!review_id) return NextResponse.json({ error: "review_id required" }, { status: 400, headers: NO_STORE_HEADERS });
 
   const supabase = createServiceClient();
-  const { data: review } = await supabase.from("reviews").select("id, professor_id, status").eq("id", review_id).single();
+  const { data: review } = await supabase.from("reviews").select("id, professor_id, course_id, status").eq("id", review_id).single();
   if (!review) return NextResponse.json({ error: "Review not found" }, { status: 404, headers: NO_STORE_HEADERS });
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -61,6 +61,13 @@ export async function PATCH(req: NextRequest) {
 
   const { error } = await supabase.from("reviews").update(updates).eq("id", review_id);
   if (error) return NextResponse.json({ error: "Failed to update review" }, { status: 500, headers: NO_STORE_HEADERS });
+
+  if (review.course_id && (course_code !== undefined || course_title !== undefined)) {
+    const courseUpdates: Record<string, string> = {};
+    if (course_code !== undefined) courseUpdates.code = String(course_code).trim().toUpperCase();
+    if (course_title !== undefined) courseUpdates.title_en = String(course_title).trim();
+    await supabase.from("courses").update(courseUpdates).eq("id", review.course_id);
+  }
 
   if (review.status === "live") {
     await supabase.rpc("refresh_professor_aggregates", { p_professor_id: review.professor_id });
