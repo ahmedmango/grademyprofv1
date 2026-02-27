@@ -353,11 +353,11 @@ function RateForm() {
               <label className="block text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-tertiary)" }}>
                 {existingCourses.length > 0 ? "New course" : "Course code or name"}
               </label>
-              <input value={newCourseCode} onChange={(e) => setNewCourseCode(e.target.value)}
+              <input value={newCourseCode} onChange={(e) => setNewCourseCode(e.target.value.toUpperCase())}
                 placeholder="Code or name (e.g. CS101 or Intro to CS)" maxLength={50}
                 className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
-              <input value={newCourseTitle} onChange={(e) => setNewCourseTitle(e.target.value)}
+              <input value={newCourseTitle} onChange={(e) => setNewCourseTitle(e.target.value.toUpperCase())}
                 placeholder="Full course name (optional)"
                 className="w-full px-3.5 py-3 rounded-xl text-[16px] outline-none"
                 style={{ background: "var(--bg-surface)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
