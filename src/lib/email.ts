@@ -22,8 +22,17 @@ function baseTemplate(content: string): string {
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e5e3;width:100%;max-width:560px">
         <tr>
-          <td style="background:#0a0a0a;padding:24px 32px">
-            <p style="margin:0;color:#E87B35;font-size:18px;font-weight:700;letter-spacing:-0.3px">GradeMyProf</p>
+          <td style="background:#0a0a0a;padding:20px 32px">
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:middle">
+                  <p style="margin:0;color:#E87B35;font-size:18px;font-weight:700;letter-spacing:-0.3px">GradeMyProf</p>
+                </td>
+                <td style="vertical-align:middle;padding-left:10px">
+                  <img src="${APP_URL}/email-logo.png" width="28" height="28" alt="" style="display:block;border:0" />
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
         <tr>
@@ -32,8 +41,8 @@ function baseTemplate(content: string): string {
           </td>
         </tr>
         <tr>
-          <td style="padding:16px 32px;background:#f9f9f8;border-top:1px solid #e5e5e3">
-            <p style="margin:0;font-size:12px;color:#9ca3af">GradeMyProf — Anonymous professor ratings in Bahrain. Your identity is never shared.</p>
+          <td style="padding:16px 32px;background:#f9f9f8;border-top:1px solid #e5e5e3;text-align:center">
+            <p style="margin:0;font-size:12px;color:#9ca3af">What Students Say</p>
           </td>
         </tr>
       </table>
