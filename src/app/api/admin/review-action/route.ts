@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { authenticateAdmin } from "@/lib/admin-auth";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 import { sendReviewLive, sendReviewRejected } from "@/lib/email";
+import logger from "@/lib/logger";
 
 const STATUS_MAP: Record<string, string> = { approve: "live", reject: "removed", shadow: "shadow", flag: "flagged" };
 const VALID_ACTIONS = ["approve", "reject", "shadow", "flag", "delete"];
@@ -44,12 +45,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Email notification for approve/reject — awaited so it completes before the serverless function exits
-  console.log(`[review-action] action=${action} newStatus=${newStatus} user_id=${review.user_id ?? "none"}`);
+  logger.debug("[review-action]", `action=${action} newStatus=${newStatus}`);
   if (review.user_id && (newStatus === "live" || newStatus === "removed")) {
     try {
       const { data: user } = await supabase
         .from("user_accounts").select("email, username").eq("id", review.user_id).single();
-      console.log(`[review-action] user lookup → ${user ? user.email : "not found"}`);
+      logger.debug("[review-action] user lookup →", user ? user.username : "not found");
       if (user?.email) {
         const profName = (review as any).professors?.name_en || "the professor";
         const profSlug = (review as any).professors?.slug || "";
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
           await sendReviewRejected(user.email, user.username, profName);
         }
       }
-    } catch (err) { console.error("[email] review-action notify failed:", err); }
+    } catch (err) { logger.error("[email] review-action notify failed:", err); }
   }
 
   return NextResponse.json({ success: true, review_id, old_status: review.status, new_status: newStatus }, { headers: NO_STORE_HEADERS });
@@ -117,7 +118,10 @@ export async function PUT(req: NextRequest) {
   const supabase = createServiceClient();
   const newStatus = STATUS_MAP[action];
 
-  const { data: reviews } = await supabase.from("reviews").select("id, professor_id, status").in("id", review_ids);
+  const { data: reviews } = await supabase
+    .from("reviews")
+    .select("id, professor_id, status, user_id, courses ( code ), professors ( name_en, slug )")
+    .in("id", review_ids);
 
   if (action === "delete") {
     const { error } = await supabase.from("reviews").delete().in("id", review_ids);
@@ -133,6 +137,38 @@ export async function PUT(req: NextRequest) {
     catch { await Promise.all(professorIds.map((pid) => supabase.rpc("refresh_professor_aggregates", { p_professor_id: pid }))); }
   }
   if (review_ids.length >= 5) { try { await supabase.rpc("refresh_trending"); } catch {} }
+
+  // Email notifications for bulk approve/reject
+  if (newStatus === "live" || newStatus === "removed") {
+    const reviewsWithUser = (reviews || []).filter((r) => r.user_id);
+    if (reviewsWithUser.length > 0) {
+      const userIds = [...new Set(reviewsWithUser.map((r) => r.user_id))];
+      const { data: users } = await supabase
+        .from("user_accounts")
+        .select("id, email, username")
+        .in("id", userIds);
+      const userMap = new Map((users || []).map((u) => [u.id, u]));
+
+      await Promise.allSettled(
+        reviewsWithUser.map(async (r) => {
+          const user = userMap.get(r.user_id);
+          if (!user?.email) return;
+          try {
+            const profName = (r as any).professors?.name_en || "the professor";
+            const profSlug = (r as any).professors?.slug || "";
+            const courseCode = (r as any).courses?.code || "";
+            if (newStatus === "live") {
+              await sendReviewLive(user.email, user.username, profName, courseCode, profSlug);
+            } else {
+              await sendReviewRejected(user.email, user.username, profName);
+            }
+          } catch (err) {
+            logger.error(`[email] bulk notify failed for review ${r.id}:`, err);
+          }
+        }),
+      );
+    }
+  }
 
   return NextResponse.json({ success: true, updated_count: review_ids.length, affected_professors: professorIds.length }, { headers: NO_STORE_HEADERS });
 }

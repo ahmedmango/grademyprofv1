@@ -6,6 +6,7 @@ import { VALID_TAGS, RATE_LIMITS } from "@/lib/constants";
 import { getCurrentSemester } from "@/lib/utils";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 import { sendReviewLive } from "@/lib/email";
+import logger from "@/lib/logger";
 
 function hashString(str: string): string {
   let hash = 0;
@@ -113,15 +114,12 @@ export async function POST(req: NextRequest) {
       user_id: user_id || null,
     }).select("id").single();
 
-    if (insertError) { console.error("Insert error:", insertError); return NextResponse.json({ error: "Failed to save review" }, { status: 500, headers: NO_STORE_HEADERS }); }
+    if (insertError) { logger.error("Insert error:", insertError); return NextResponse.json({ error: "Failed to save review" }, { status: 500, headers: NO_STORE_HEADERS }); }
 
-    supabase.from("rate_limits").insert({ anon_user_hash: anonUserHash, ip_hash: ipHash }).then();
-
-    // Ensure professor ↔ course link exists for search
-    supabase
-      .from("professor_courses")
-      .upsert({ professor_id, course_id }, { onConflict: "professor_id,course_id" })
-      .then(() => {});
+    await Promise.all([
+      supabase.from("rate_limits").insert({ anon_user_hash: anonUserHash, ip_hash: ipHash }),
+      supabase.from("professor_courses").upsert({ professor_id, course_id }, { onConflict: "professor_id,course_id" }),
+    ]);
 
     if (status === "live") {
       await supabase.rpc("refresh_professor_aggregates", { p_professor_id: professor_id });
@@ -132,14 +130,14 @@ export async function POST(req: NextRequest) {
       try {
         const { data: user } = await supabase
           .from("user_accounts").select("email, username").eq("id", user_id).single();
-        console.log(`[review] auto-approval email → user=${user ? user.email : "not found"}`);
+        logger.debug("[review] auto-approval email →", user ? user.username : "not found");
         if (user?.email) {
           const profName = profResult.data?.name_en || "the professor";
           const profSlug = profResult.data?.slug || "";
           const { data: course } = await supabase.from("courses").select("code").eq("id", course_id).single();
           await sendReviewLive(user.email, user.username, profName, course?.code || "", profSlug);
         }
-      } catch (err) { console.error("[email] auto-approval notify failed:", err); }
+      } catch (err) { logger.error("[email] auto-approval notify failed:", err); }
     }
 
     // Revalidate affected pages — only when review is live to avoid pointless rebuilds
@@ -162,7 +160,7 @@ export async function POST(req: NextRequest) {
         }
         revalidatePath("/", "layout");
         paths.push("/");
-        console.log("REVALIDATE TRIGGERED [review submission]", paths);
+        logger.info("REVALIDATE TRIGGERED [review submission]", paths);
       } catch {}
     }
 
@@ -179,7 +177,7 @@ export async function POST(req: NextRequest) {
       message: messages[status] || messages.pending,
     }, { status: 201, headers: NO_STORE_HEADERS });
   } catch (err) {
-    console.error("Review submission error:", err);
+    logger.error("Review submission error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 }
@@ -254,7 +252,7 @@ export async function PUT(req: NextRequest) {
     const { error: updateError } = await supabase.from("reviews").update(updates).eq("id", review_id);
 
     if (updateError) {
-      console.error("Review update error:", updateError);
+      logger.error("Review update error:", updateError);
       return NextResponse.json({ error: "Failed to update review" }, { status: 500, headers: NO_STORE_HEADERS });
     }
 
@@ -266,7 +264,7 @@ export async function PUT(req: NextRequest) {
     const wasLive = existing.status === "live" || existing.status === "shadow";
     return NextResponse.json({ success: true, went_to_moderation: wasLive }, { headers: NO_STORE_HEADERS });
   } catch (err) {
-    console.error("Review update error:", err);
+    logger.error("Review update error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 }

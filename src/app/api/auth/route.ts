@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { validateUsername, validateEmail, validatePassword } from "@/lib/validation";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 import { signJWT } from "@/lib/jwt";
+import logger from "@/lib/logger";
 
 const SESSION_SECRET = process.env.SESSION_SECRET || (
   process.env.NODE_ENV === "production"
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
       });
 
       if (insertError) {
-        console.error("Registration error:", insertError);
+        logger.error("Registration error:", insertError);
         return NextResponse.json({ error: "Failed to create account" }, { status: 500, headers: NO_STORE_HEADERS });
       }
 
@@ -159,7 +160,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400, headers: NO_STORE_HEADERS });
     }
   } catch (err) {
-    console.error("Auth error:", err);
+    logger.error("Auth error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 }

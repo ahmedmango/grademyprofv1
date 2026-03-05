@@ -142,13 +142,11 @@ function RateForm() {
           confirm_password: confirmPassword, accepted_terms: acceptedTerms, anon_user_hash: anonHash,
         });
         if (!result.success) { setError(result.error || "Registration failed"); setSubmitting(false); return; }
-        const saved = localStorage.getItem("gmp_user");
-        if (saved) userId = JSON.parse(saved).id;
+        if (result.user) userId = result.user.id;
       } else {
         const result = await login(email.trim(), password);
         if (!result.success) { setError(result.error || "Login failed"); setSubmitting(false); return; }
-        const saved = localStorage.getItem("gmp_user");
-        if (saved) userId = JSON.parse(saved).id;
+        if (result.user) userId = result.user.id;
       }
     }
 

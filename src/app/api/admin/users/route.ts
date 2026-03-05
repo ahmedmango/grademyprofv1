@@ -27,7 +27,8 @@ export async function GET(req: NextRequest) {
     const { data: counts } = await supabase
       .from("reviews")
       .select("user_id")
-      .in("user_id", userIds);
+      .in("user_id", userIds)
+      .eq("status", "live");
 
     if (counts) {
       for (const row of counts) {

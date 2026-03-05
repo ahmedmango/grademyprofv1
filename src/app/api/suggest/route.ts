@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
+import logger from "@/lib/logger";
 
 function slugify(str: string): string {
   return str
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (error) {
-        console.error("Professor creation error:", error);
+        logger.error("Professor creation error:", error);
         return NextResponse.json({ error: "Failed to add professor" }, { status: 500, headers: NO_STORE_HEADERS });
       }
 
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
         }
         revalidatePath("/", "layout");
         paths.push("/");
-        console.log("REVALIDATE TRIGGERED [suggest]", paths);
+        logger.info("REVALIDATE TRIGGERED [suggest]", paths);
       } catch {}
 
       return NextResponse.json({
@@ -97,7 +98,7 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (error) {
-        console.error("Course creation error:", error);
+        logger.error("Course creation error:", error);
         return NextResponse.json({ error: "Failed to add course" }, { status: 500, headers: NO_STORE_HEADERS });
       }
 
@@ -115,7 +116,7 @@ export async function POST(req: NextRequest) {
         });
 
       if (error) {
-        console.error("Suggestion error:", error);
+        logger.error("Suggestion error:", error);
         return NextResponse.json({ error: "Failed to submit suggestion" }, { status: 500, headers: NO_STORE_HEADERS });
       }
 
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid type" }, { status: 400, headers: NO_STORE_HEADERS });
     }
   } catch (err) {
-    console.error("Suggest error:", err);
+    logger.error("Suggest error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 }

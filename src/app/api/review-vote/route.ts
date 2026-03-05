@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 import { sendReviewMilestone } from "@/lib/email";
+import logger from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     const { error } = await supabase.from("review_votes").insert({ review_id, user_id, vote });
     if (error) {
-      console.error("Vote insert error:", error);
+      logger.error("Vote insert error:", error);
       return NextResponse.json({ error: "Failed to vote" }, { status: 500, headers: NO_STORE_HEADERS });
     }
 
@@ -68,13 +69,13 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (err) {
-        console.error("[review-vote] milestone email failed:", err);
+        logger.error("[review-vote] milestone email failed:", err);
       }
     }
 
     return NextResponse.json({ action: "added", vote }, { headers: NO_STORE_HEADERS });
   } catch (err) {
-    console.error("Vote error:", err);
+    logger.error("Vote error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 }

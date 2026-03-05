@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import logger from "@/lib/logger";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = "GradeMyProf <noreply@grademyprofessor.net>";
@@ -51,10 +52,10 @@ export async function sendReviewLive(
   professorSlug?: string,
 ): Promise<void> {
   if (!process.env.RESEND_API_KEY) {
-    console.warn("[email] RESEND_API_KEY not set — skipping sendReviewLive");
+    logger.warn("[email] RESEND_API_KEY not set — skipping sendReviewLive");
     return;
   }
-  console.log(`[email] sendReviewLive → to=${to} prof="${professorName}" course="${courseCode}"`);
+  logger.debug("[email] sendReviewLive →", `prof="${professorName}" course="${courseCode}"`);
   const profileUrl = professorSlug ? `${APP_URL}/p/${professorSlug}` : APP_URL;
   try {
     const { data, error } = await resend.emails.send({
@@ -78,12 +79,12 @@ export async function sendReviewLive(
       `),
     });
     if (error) {
-      console.error("[email] sendReviewLive Resend error:", JSON.stringify(error));
+      logger.error("[email] sendReviewLive Resend error:", JSON.stringify(error));
     } else {
-      console.log("[email] sendReviewLive delivered, id:", data?.id);
+      logger.debug("[email] sendReviewLive delivered, id:", data?.id);
     }
   } catch (err) {
-    console.error("[email] sendReviewLive threw:", err);
+    logger.error("[email] sendReviewLive threw:", err);
   }
 }
 
@@ -95,10 +96,10 @@ export async function sendReviewMilestone(
   professorSlug?: string,
 ): Promise<void> {
   if (!process.env.RESEND_API_KEY) {
-    console.warn("[email] RESEND_API_KEY not set — skipping sendReviewMilestone");
+    logger.warn("[email] RESEND_API_KEY not set — skipping sendReviewMilestone");
     return;
   }
-  console.log(`[email] sendReviewMilestone → to=${to} prof="${professorName}" course="${courseCode}"`);
+  logger.debug("[email] sendReviewMilestone →", `prof="${professorName}" course="${courseCode}"`);
   const profileUrl = professorSlug ? `${APP_URL}/p/${professorSlug}` : APP_URL;
   try {
     const { data, error } = await resend.emails.send({
@@ -122,12 +123,12 @@ export async function sendReviewMilestone(
       `),
     });
     if (error) {
-      console.error("[email] sendReviewMilestone Resend error:", JSON.stringify(error));
+      logger.error("[email] sendReviewMilestone Resend error:", JSON.stringify(error));
     } else {
-      console.log("[email] sendReviewMilestone delivered, id:", data?.id);
+      logger.debug("[email] sendReviewMilestone delivered, id:", data?.id);
     }
   } catch (err) {
-    console.error("[email] sendReviewMilestone threw:", err);
+    logger.error("[email] sendReviewMilestone threw:", err);
   }
 }
 
@@ -138,10 +139,10 @@ export async function sendReviewRejected(
   reason?: string,
 ): Promise<void> {
   if (!process.env.RESEND_API_KEY) {
-    console.warn("[email] RESEND_API_KEY not set — skipping sendReviewRejected");
+    logger.warn("[email] RESEND_API_KEY not set — skipping sendReviewRejected");
     return;
   }
-  console.log(`[email] sendReviewRejected → to=${to} prof="${professorName}"`);
+  logger.debug("[email] sendReviewRejected →", `prof="${professorName}"`);
   try {
     const { data, error } = await resend.emails.send({
       from: FROM,
@@ -171,11 +172,11 @@ export async function sendReviewRejected(
       `),
     });
     if (error) {
-      console.error("[email] sendReviewRejected Resend error:", JSON.stringify(error));
+      logger.error("[email] sendReviewRejected Resend error:", JSON.stringify(error));
     } else {
-      console.log("[email] sendReviewRejected delivered, id:", data?.id);
+      logger.debug("[email] sendReviewRejected delivered, id:", data?.id);
     }
   } catch (err) {
-    console.error("[email] sendReviewRejected threw:", err);
+    logger.error("[email] sendReviewRejected threw:", err);
   }
 }

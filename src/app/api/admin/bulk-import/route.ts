@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { authenticateAdmin } from "@/lib/admin-auth";
 import { slugify } from "@/lib/utils";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
+import logger from "@/lib/logger";
 
 type ParsedRow = {
   name_en: string;
@@ -274,7 +275,7 @@ export async function POST(req: NextRequest) {
     const chunk = toInsert.slice(i, i + 50);
     const { error } = await supabase.from("professors").insert(chunk);
     if (error) {
-      console.error("Bulk insert error:", error);
+      logger.error("Bulk insert error:", error);
       for (let j = i; j < i + chunk.length; j++) {
         const match = results.find((r) => r.status === "created" && r.name === toInsert[j].name_en);
         if (match) { match.status = "error"; match.detail = error.message; }

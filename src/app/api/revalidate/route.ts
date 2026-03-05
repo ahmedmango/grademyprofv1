@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
+import logger from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,11 +20,11 @@ export async function POST(req: NextRequest) {
     } else {
       revalidatePath("/", "layout");
     }
-    console.log("REVALIDATE TRIGGERED [revalidate route]", resolved);
+    logger.info("REVALIDATE TRIGGERED [revalidate route]", resolved);
 
     return NextResponse.json({ revalidated: true, paths: resolved }, { headers: NO_STORE_HEADERS });
   } catch (err) {
-    console.error("Revalidation error:", err);
+    logger.error("Revalidation error:", err);
     return NextResponse.json({ error: "Revalidation failed" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 }

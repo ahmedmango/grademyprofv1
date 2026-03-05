@@ -16,16 +16,12 @@ export async function POST(req: NextRequest) {
     const { data: review } = await supabase.from("reviews").select("id").eq("id", review_id).eq("status", "live").single();
     if (!review) return NextResponse.json({ error: "Review not found" }, { status: 404, headers: NO_STORE_HEADERS });
 
-    const { error: insertError } = await supabase.from("reports").insert({
-      review_id, reason, detail: (detail || "").trim().slice(0, 500),
+    const { error: rpcError } = await supabase.rpc("insert_report_and_maybe_flag", {
+      p_review_id: review_id,
+      p_reason: reason,
+      p_detail: (detail || "").trim().slice(0, 500),
     });
-    if (insertError) return NextResponse.json({ error: "Failed to submit report" }, { status: 500, headers: NO_STORE_HEADERS });
-
-    const { count } = await supabase.from("reports").select("*", { count: "exact", head: true }).eq("review_id", review_id);
-    if ((count || 0) >= 3) {
-      await supabase.from("reviews").update({ status: "flagged", updated_at: new Date().toISOString() })
-        .eq("id", review_id).eq("status", "live");
-    }
+    if (rpcError) return NextResponse.json({ error: "Failed to submit report" }, { status: 500, headers: NO_STORE_HEADERS });
 
     return NextResponse.json({ success: true, message: "Thank you for reporting. Our team will review this." }, { status: 201, headers: NO_STORE_HEADERS });
   } catch { return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS }); }

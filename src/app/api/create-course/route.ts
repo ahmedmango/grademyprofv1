@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
+import logger from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (profError || !prof) {
-      console.error("Professor lookup failed:", profError);
+      logger.error("Professor lookup failed:", profError);
       return NextResponse.json({ error: "Professor not found" }, { status: 404, headers: NO_STORE_HEADERS });
     }
 
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        console.error("Course creation error:", insertError);
+        logger.error("Course creation error:", insertError);
         return NextResponse.json(
           { error: `Failed to create course: ${insertError?.message || "unknown error"}` },
           { status: 500, headers: NO_STORE_HEADERS },
@@ -79,12 +80,11 @@ export async function POST(req: NextRequest) {
 
     await supabase
       .from("professor_courses")
-      .upsert({ professor_id, course_id: courseId! }, { onConflict: "professor_id,course_id" })
-      .then(() => {});
+      .upsert({ professor_id, course_id: courseId! }, { onConflict: "professor_id,course_id" });
 
     return NextResponse.json({ course_id: courseId!, code }, { headers: NO_STORE_HEADERS });
   } catch (err) {
-    console.error("Course creation error:", err);
+    logger.error("Course creation error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 }
