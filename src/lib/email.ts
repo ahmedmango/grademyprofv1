@@ -1,7 +1,13 @@
 import { Resend } from "resend";
 import logger from "@/lib/logger";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    _resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return _resend;
+}
 const FROM = "GradeMyProf <noreply@grademyprofessor.net>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://grademyprofessor.net";
 
@@ -58,7 +64,7 @@ export async function sendReviewLive(
   logger.debug("[email] sendReviewLive →", `prof="${professorName}" course="${courseCode}"`);
   const profileUrl = professorSlug ? `${APP_URL}/p/${professorSlug}` : APP_URL;
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: FROM,
       to,
       subject: "Your review is now live ✓",
@@ -102,7 +108,7 @@ export async function sendReviewMilestone(
   logger.debug("[email] sendReviewMilestone →", `prof="${professorName}" course="${courseCode}"`);
   const profileUrl = professorSlug ? `${APP_URL}/p/${professorSlug}` : APP_URL;
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: FROM,
       to,
       subject: "5 students found your review helpful ★",
@@ -144,7 +150,7 @@ export async function sendReviewRejected(
   }
   logger.debug("[email] sendReviewRejected →", `prof="${professorName}"`);
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: FROM,
       to,
       subject: "Update on your GradeMyProf review",
