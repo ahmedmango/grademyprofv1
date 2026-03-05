@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authenticateAdmin } from "@/lib/admin-auth";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
+import logger from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   const admin = await authenticateAdmin(req);
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
   const { data: reviews, count, error } = await query;
 
   if (error) {
-    console.error("Mod queue error:", error);
+    logger.error("Mod queue error:", error);
     return NextResponse.json({ error: "Failed to fetch queue" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 

@@ -3,13 +3,20 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 import { sendReviewMilestone } from "@/lib/email";
 import logger from "@/lib/logger";
+import { getSessionUser } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   try {
     const supabase = createServiceClient();
-    const { review_id, vote, user_id } = await req.json();
+    const { review_id, vote } = await req.json();
+    const sessionUser = await getSessionUser(req);
 
-    if (!review_id || !vote || !user_id)
+    if (!sessionUser)
+      return NextResponse.json({ error: "Authentication required" }, { status: 401, headers: NO_STORE_HEADERS });
+
+    const user_id = sessionUser.id;
+
+    if (!review_id || !vote)
       return NextResponse.json({ error: "Missing fields" }, { status: 400, headers: NO_STORE_HEADERS });
 
     if (vote !== "up" && vote !== "down")
@@ -37,35 +44,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Failed to vote" }, { status: 500, headers: NO_STORE_HEADERS });
     }
 
-    // 5-upvote milestone email — awaited before response so Vercel doesn't kill it
+    // 5-upvote milestone email — includes admin upvote_boost in total
     if (vote === "up") {
       try {
-        const { count: upCount } = await supabase
-          .from("review_votes")
-          .select("*", { count: "exact", head: true })
-          .eq("review_id", review_id)
-          .eq("vote", "up");
-
-        if (upCount === 5) {
-          const { data: review } = await supabase
+        const [{ count: upCount }, { data: review }] = await Promise.all([
+          supabase
+            .from("review_votes")
+            .select("*", { count: "exact", head: true })
+            .eq("review_id", review_id)
+            .eq("vote", "up"),
+          supabase
             .from("reviews")
-            .select("user_id, courses ( code ), professors ( name_en, slug )")
+            .select("user_id, upvote_boost, courses ( code ), professors ( name_en, slug )")
             .eq("id", review_id)
+            .single(),
+        ]);
+
+        const boost = (review as any)?.upvote_boost || 0;
+        const total = (upCount || 0) + boost;
+
+        // Fire exactly when this vote crosses the 5-threshold (total === 5)
+        if (total === 5 && review?.user_id) {
+          const { data: author } = await supabase
+            .from("user_accounts")
+            .select("email, username")
+            .eq("id", review.user_id)
             .single();
 
-          if (review?.user_id) {
-            const { data: author } = await supabase
-              .from("user_accounts")
-              .select("email, username")
-              .eq("id", review.user_id)
-              .single();
-
-            if (author?.email) {
-              const profName = (review as any).professors?.name_en || "the professor";
-              const profSlug = (review as any).professors?.slug || "";
-              const courseCode = (review as any).courses?.code || "";
-              await sendReviewMilestone(author.email, author.username, profName, courseCode, profSlug);
-            }
+          if (author?.email) {
+            const profName = (review as any).professors?.name_en || "the professor";
+            const profSlug = (review as any).professors?.slug || "";
+            const courseCode = (review as any).courses?.code || "";
+            await sendReviewMilestone(author.email, author.username, profName, courseCode, profSlug);
           }
         }
       } catch (err) {
@@ -84,12 +94,13 @@ export async function GET(req: NextRequest) {
   try {
     const supabase = createServiceClient();
     const reviewIds = req.nextUrl.searchParams.get("review_ids");
-    const userId = req.nextUrl.searchParams.get("user_id");
+    const sessionUser = await getSessionUser(req);
+    const userId = sessionUser?.id || null;
 
     if (!reviewIds)
       return NextResponse.json({ error: "Missing review_ids" }, { status: 400, headers: NO_STORE_HEADERS });
 
-    const ids = reviewIds.split(",").filter(Boolean);
+    const ids = reviewIds.split(",").filter(Boolean).slice(0, 100);
 
     const [votesResult, boostResult] = await Promise.all([
       supabase.from("review_votes").select("review_id, vote").in("review_id", ids),

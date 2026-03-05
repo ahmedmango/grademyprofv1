@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
+import { getSessionUser } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   const anonUserHash = req.headers.get("x-anon-user-hash");
-  const userId = req.headers.get("x-user-id");
+  const sessionUser = await getSessionUser(req);
+  const userId = sessionUser?.id || null;
 
   if (!anonUserHash || anonUserHash.length < 8)
     return NextResponse.json({ error: "Missing identity" }, { status: 400, headers: NO_STORE_HEADERS });

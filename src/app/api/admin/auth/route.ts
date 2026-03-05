@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { signJWT } from "@/lib/jwt";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
+import logger from "@/lib/logger";
 
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || (
   process.env.NODE_ENV === "production"
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ token }, { headers: NO_STORE_HEADERS });
   } catch (err) {
-    console.error("Admin auth error:", err);
+    logger.error("Admin auth error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500, headers: NO_STORE_HEADERS },

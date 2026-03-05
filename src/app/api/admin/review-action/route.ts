@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authenticateAdmin } from "@/lib/admin-auth";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
-import { sendReviewLive, sendReviewRejected } from "@/lib/email";
+import { sendReviewLive, sendReviewRejected, sendReviewMilestone } from "@/lib/email";
 import logger from "@/lib/logger";
+import { VALID_TAGS, RATE_LIMITS } from "@/lib/constants";
 
 const STATUS_MAP: Record<string, string> = { approve: "live", reject: "removed", shadow: "shadow", flag: "flagged" };
 const VALID_ACTIONS = ["approve", "reject", "shadow", "flag", "delete"];
@@ -75,14 +76,14 @@ export async function PATCH(req: NextRequest) {
   if (!review_id) return NextResponse.json({ error: "review_id required" }, { status: 400, headers: NO_STORE_HEADERS });
 
   const supabase = createServiceClient();
-  const { data: review } = await supabase.from("reviews").select("id, professor_id, course_id, status").eq("id", review_id).single();
+  const { data: review } = await supabase.from("reviews").select("id, professor_id, course_id, status, upvote_boost, user_id, courses ( code ), professors ( name_en, slug )").eq("id", review_id).single();
   if (!review) return NextResponse.json({ error: "Review not found" }, { status: 404, headers: NO_STORE_HEADERS });
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (rating_quality !== undefined) updates.rating_quality = Math.min(5, Math.max(1, Number(rating_quality)));
   if (rating_difficulty !== undefined) updates.rating_difficulty = Math.min(5, Math.max(1, Number(rating_difficulty)));
   if (would_take_again !== undefined) updates.would_take_again = would_take_again;
-  if (tags !== undefined) updates.tags = Array.isArray(tags) ? tags : [];
+  if (tags !== undefined) updates.tags = (Array.isArray(tags) ? tags : []).filter((t: string) => VALID_TAGS.includes(t as any)).slice(0, RATE_LIMITS.MAX_TAGS);
   if (comment !== undefined) updates.comment = String(comment).trim();
   if (upvote_boost !== undefined) updates.upvote_boost = Math.max(0, Math.round(Number(upvote_boost)));
 
@@ -98,6 +99,35 @@ export async function PATCH(req: NextRequest) {
 
   if (review.status === "live") {
     await supabase.rpc("refresh_professor_aggregates", { p_professor_id: review.professor_id });
+  }
+
+  // Milestone email when admin boost pushes total upvotes to >= 5
+  if (upvote_boost !== undefined && review.user_id) {
+    const oldBoost = (review as any).upvote_boost || 0;
+    const newBoost = updates.upvote_boost as number;
+    if (oldBoost !== newBoost) {
+      try {
+        const { count: realVotes } = await supabase
+          .from("review_votes")
+          .select("*", { count: "exact", head: true })
+          .eq("review_id", review_id)
+          .eq("vote", "up");
+        const oldTotal = (realVotes || 0) + oldBoost;
+        const newTotal = (realVotes || 0) + newBoost;
+        if (oldTotal < 5 && newTotal >= 5) {
+          const { data: author } = await supabase
+            .from("user_accounts").select("email, username").eq("id", review.user_id).single();
+          if (author?.email) {
+            const profName = (review as any).professors?.name_en || "the professor";
+            const profSlug = (review as any).professors?.slug || "";
+            const courseCode = (review as any).courses?.code || "";
+            await sendReviewMilestone(author.email, author.username, profName, courseCode, profSlug);
+          }
+        }
+      } catch (err) {
+        logger.error("[review-action] milestone email failed:", err);
+      }
+    }
   }
 
   return NextResponse.json({ success: true, review_id }, { headers: NO_STORE_HEADERS });

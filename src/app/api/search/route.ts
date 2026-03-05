@@ -3,7 +3,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 
 function sanitizeWord(w: string): string {
-  return w.replace(/[^\w\-.']/g, "").slice(0, 50);
+  return w.replace(/[^\w\-.']/g, "").replace(/[%_]/g, "").slice(0, 50);
 }
 
 export async function GET(req: NextRequest) {

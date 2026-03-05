@@ -7,12 +7,8 @@ import { getCurrentSemester } from "@/lib/utils";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 import { sendReviewLive } from "@/lib/email";
 import logger from "@/lib/logger";
-
-function hashString(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) { hash = (hash << 5) - hash + str.charCodeAt(i); hash |= 0; }
-  return Math.abs(hash).toString(36);
-}
+import { getSessionUser } from "@/lib/session";
+import { sha256Short } from "@/lib/hash";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,12 +16,17 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const anonUserHash = req.headers.get("x-anon-user-hash") || "";
     const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const ipHash = hashString(clientIp);
-    const uaHash = hashString(req.headers.get("user-agent") || "");
+    const [ipHash, uaHash] = await Promise.all([
+      sha256Short(clientIp),
+      sha256Short(req.headers.get("user-agent") || ""),
+    ]);
 
     const { professor_id, course_id, rating_quality, rating_difficulty,
-      would_take_again, attendance_mandatory, uses_textbook, grade_received, 
-      tags, comment, user_id } = body;
+      would_take_again, attendance_mandatory, uses_textbook, grade_received,
+      tags, comment } = body;
+
+    const sessionUser = await getSessionUser(req);
+    const user_id = sessionUser?.id || null;
 
     if (!professor_id || !course_id || !rating_quality || !rating_difficulty)
       return NextResponse.json({ error: "Missing required fields" }, { status: 400, headers: NO_STORE_HEADERS });
@@ -187,7 +188,8 @@ export async function PUT(req: NextRequest) {
     const supabase = createServiceClient();
     const body = await req.json();
     const anonUserHash = req.headers.get("x-anon-user-hash") || "";
-    const userId = req.headers.get("x-user-id") || "";
+    const sessionUser = await getSessionUser(req);
+    const userId = sessionUser?.id || "";
 
     const { review_id, rating_quality, rating_difficulty, would_take_again, grade_received, tags, comment } = body;
 

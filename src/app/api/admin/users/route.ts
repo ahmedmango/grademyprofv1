@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { authenticateAdmin } from "@/lib/admin-auth";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
+import logger from "@/lib/logger";
 
 export async function GET(req: NextRequest) {
   const admin = await authenticateAdmin(req);
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Users fetch error:", error);
+    logger.error("Users fetch error:", error);
     return NextResponse.json({ error: "Failed to fetch users" }, { status: 500, headers: NO_STORE_HEADERS });
   }
 
@@ -45,9 +46,14 @@ export async function GET(req: NextRequest) {
   }));
 
   if (format === "csv") {
+    function csvSafe(val: string): string {
+      let s = String(val).replace(/"/g, '""');
+      s = s.replace(/^[=+\-@]/, "'$&");
+      return `"${s}"`;
+    }
     const header = "id,username,email,created_at,is_banned,review_count";
     const rows = enriched.map((u) =>
-      `${u.id},"${u.username}","${u.email}",${u.created_at},${u.is_banned},${u.review_count}`
+      `${u.id},${csvSafe(u.username)},${csvSafe(u.email)},${u.created_at},${u.is_banned},${u.review_count}`
     );
     const csv = [header, ...rows].join("\n");
     return new NextResponse(csv, {
