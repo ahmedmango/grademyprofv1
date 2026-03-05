@@ -5,7 +5,7 @@ import { scanContent } from "@/lib/moderation";
 import { VALID_TAGS, RATE_LIMITS } from "@/lib/constants";
 import { getCurrentSemester } from "@/lib/utils";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
-import { sendReviewLive } from "@/lib/email";
+import { sendReviewLive, sendAdminNewReview } from "@/lib/email";
 import logger from "@/lib/logger";
 import { getSessionUser } from "@/lib/session";
 import { sha256Short } from "@/lib/hash";
@@ -126,6 +126,22 @@ export async function POST(req: NextRequest) {
       await supabase.rpc("refresh_professor_aggregates", { p_professor_id: professor_id });
     }
 
+    // Admin notification — fetch course code once, reuse for both emails
+    const { data: courseData } = await supabase.from("courses").select("code").eq("id", course_id).single();
+    const courseCode = courseData?.code || "";
+    try {
+      await sendAdminNewReview({
+        professorName: profResult.data?.name_en || "Unknown",
+        courseCode,
+        ratingQuality: rating_quality,
+        ratingDifficulty: rating_difficulty,
+        comment: cleanComment,
+        status,
+        reviewId: review.id,
+        isLoggedIn: !!user_id,
+      });
+    } catch (err) { logger.error("[email] admin notification failed:", err); }
+
     // Email for auto-approved reviews — awaited so it completes before the serverless function exits
     if (status === "live" && user_id) {
       try {
@@ -135,8 +151,7 @@ export async function POST(req: NextRequest) {
         if (user?.email) {
           const profName = profResult.data?.name_en || "the professor";
           const profSlug = profResult.data?.slug || "";
-          const { data: course } = await supabase.from("courses").select("code").eq("id", course_id).single();
-          await sendReviewLive(user.email, user.username, profName, course?.code || "", profSlug);
+          await sendReviewLive(user.email, user.username, profName, courseCode, profSlug);
         }
       } catch (err) { logger.error("[email] auto-approval notify failed:", err); }
     }

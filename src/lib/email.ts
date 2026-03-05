@@ -138,6 +138,75 @@ export async function sendReviewMilestone(
   }
 }
 
+export async function sendAdminNewReview(opts: {
+  professorName: string;
+  courseCode: string;
+  ratingQuality: number;
+  ratingDifficulty: number;
+  comment: string;
+  status: string;
+  reviewId: string;
+  isLoggedIn: boolean;
+}): Promise<void> {
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
+  if (!process.env.RESEND_API_KEY || !adminEmail) {
+    logger.warn("[email] skipping admin notification — RESEND_API_KEY or ADMIN_NOTIFICATION_EMAIL not set");
+    return;
+  }
+  logger.debug("[email] sendAdminNewReview →", `prof="${opts.professorName}" status=${opts.status}`);
+  const modUrl = `${APP_URL}/admin`;
+  const preview = opts.comment.length > 200 ? opts.comment.slice(0, 200) + "…" : opts.comment;
+  const statusColor: Record<string, string> = {
+    live: "#16a34a", pending: "#d97706", flagged: "#dc2626", removed: "#991b1b",
+  };
+  const color = statusColor[opts.status] || "#6b7280";
+  try {
+    const { data, error } = await getResend().emails.send({
+      from: FROM,
+      to: adminEmail,
+      subject: `New review: ${opts.professorName} (${opts.courseCode || "no course"}) — ${opts.status}`,
+      html: baseTemplate(`
+        <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#111110">New Review Submitted</h1>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
+          <tr>
+            <td style="padding:8px 0;font-size:13px;color:#6b7280;width:110px">Professor</td>
+            <td style="padding:8px 0;font-size:14px;color:#111110;font-weight:600">${escapeHtml(opts.professorName)}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;font-size:13px;color:#6b7280">Course</td>
+            <td style="padding:8px 0;font-size:14px;color:#111110">${escapeHtml(opts.courseCode || "—")}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;font-size:13px;color:#6b7280">Quality / Difficulty</td>
+            <td style="padding:8px 0;font-size:14px;color:#111110">${opts.ratingQuality} / ${opts.ratingDifficulty}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;font-size:13px;color:#6b7280">Status</td>
+            <td style="padding:8px 0;font-size:14px;font-weight:600;color:${color}">${escapeHtml(opts.status.toUpperCase())}</td>
+          </tr>
+          <tr>
+            <td style="padding:8px 0;font-size:13px;color:#6b7280">Logged in</td>
+            <td style="padding:8px 0;font-size:14px;color:#111110">${opts.isLoggedIn ? "Yes" : "No (anonymous)"}</td>
+          </tr>
+        </table>
+        ${preview ? `
+        <div style="background:#f9f9f8;border:1px solid #e5e5e3;border-radius:10px;padding:16px;margin-bottom:20px">
+          <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em">Comment</p>
+          <p style="margin:0;font-size:14px;color:#374151;line-height:1.6">${escapeHtml(preview)}</p>
+        </div>` : ""}
+        <a href="${modUrl}" style="display:inline-block;background:#0a0a0a;color:#ffffff;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none">Open Mod Queue →</a>
+      `),
+    });
+    if (error) {
+      logger.error("[email] sendAdminNewReview Resend error:", JSON.stringify(error));
+    } else {
+      logger.debug("[email] sendAdminNewReview delivered, id:", data?.id);
+    }
+  } catch (err) {
+    logger.error("[email] sendAdminNewReview threw:", err);
+  }
+}
+
 export async function sendReviewRejected(
   to: string,
   username: string,
