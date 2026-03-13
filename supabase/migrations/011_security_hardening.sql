@@ -45,53 +45,71 @@ WHERE p.is_active = true;
 
 -- ============================================================
 -- 2. FIX: Function search_path mutable — set search_path on all functions
+--    Wrapped in DO blocks since ALTER FUNCTION has no IF EXISTS.
 -- ============================================================
+DO $$ BEGIN
+  ALTER FUNCTION public.create_user_account SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 
--- 2a. create_user_account
-ALTER FUNCTION IF EXISTS public.create_user_account SET search_path = public;
+DO $$ BEGIN
+  ALTER FUNCTION public.verify_user_login SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 
--- 2b. verify_user_login
-ALTER FUNCTION IF EXISTS public.verify_user_login SET search_path = public;
+DO $$ BEGIN
+  ALTER FUNCTION public.should_auto_approve SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 
--- 2c. should_auto_approve
-ALTER FUNCTION IF EXISTS public.should_auto_approve SET search_path = public;
+DO $$ BEGIN
+  ALTER FUNCTION public.refresh_professor_aggregates(uuid) SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 
--- 2d. refresh_professor_aggregates
-ALTER FUNCTION IF EXISTS public.refresh_professor_aggregates(uuid) SET search_path = public;
+DO $$ BEGIN
+  ALTER FUNCTION public.refresh_professor_aggregates_batch SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 
--- 2e. refresh_professor_aggregates_batch
-ALTER FUNCTION IF EXISTS public.refresh_professor_aggregates_batch SET search_path = public;
+DO $$ BEGIN
+  ALTER FUNCTION public.refresh_trending SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 
--- 2f. refresh_trending
-ALTER FUNCTION IF EXISTS public.refresh_trending SET search_path = public;
+DO $$ BEGIN
+  ALTER FUNCTION public.current_semester_window SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 
--- 2g. current_semester_window
-ALTER FUNCTION IF EXISTS public.current_semester_window SET search_path = public;
+DO $$ BEGIN
+  ALTER FUNCTION public.search_professors_courses SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 
--- 2h. search_professors_courses
-ALTER FUNCTION IF EXISTS public.search_professors_courses SET search_path = public;
+DO $$ BEGIN
+  ALTER FUNCTION public.get_review_status_counts SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 
--- 2i. get_review_status_counts
-ALTER FUNCTION IF EXISTS public.get_review_status_counts SET search_path = public;
+DO $$ BEGIN
+  ALTER FUNCTION public.auto_link_professor_course SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 
--- 2j. auto_link_professor_course
-ALTER FUNCTION IF EXISTS public.auto_link_professor_course SET search_path = public;
-
--- 2k. insert_report_and_maybe_flag (from migration 010)
-ALTER FUNCTION IF EXISTS public.insert_report_and_maybe_flag SET search_path = public;
+DO $$ BEGIN
+  ALTER FUNCTION public.insert_report_and_maybe_flag SET search_path = public;
+EXCEPTION WHEN undefined_function THEN NULL;
+END $$;
 
 
 -- ============================================================
--- 3. FIX: Extension in public schema (pg_trgm)
---    Move to the 'extensions' schema (Supabase best practice).
---    Note: If extensions schema doesn't exist, create it.
+-- 3. SKIPPED: pg_trgm extension in public schema
+--    Moving it would require dropping and recreating all 5
+--    trigram search indexes. Risk outweighs the benefit for a
+--    WARN-level lint. pg_trgm in public is safe — it only adds
+--    operator classes, no security surface.
 -- ============================================================
-CREATE SCHEMA IF NOT EXISTS extensions;
-
--- Drop and recreate in extensions schema.
--- pg_trgm indexes will be automatically updated.
-DROP EXTENSION IF EXISTS pg_trgm;
-CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
 
 
 -- ============================================================
@@ -114,7 +132,7 @@ CREATE POLICY "pub_insert_reports"
   WITH CHECK (
     review_id IS NOT NULL
     AND reason IS NOT NULL
-    AND length(reason) > 0
+    AND length(reason::text) > 0
   );
 
 -- 5b. suggestions: Replace WITH CHECK (true) with validation
@@ -124,8 +142,8 @@ CREATE POLICY "pub_insert_suggestions"
   FOR INSERT
   WITH CHECK (
     type IS NOT NULL
-    AND content IS NOT NULL
-    AND length(content) >= 2
+    AND name_en IS NOT NULL
+    AND length(name_en::text) >= 2
   );
 
 
@@ -151,12 +169,4 @@ COMMENT ON TABLE public.review_votes IS 'Review vote tracking. RLS enabled, no p
 COMMENT ON TABLE public.user_accounts IS 'User accounts with hashed passwords. RLS enabled, no public policies — accessed only via service role key.';
 
 
--- ============================================================
--- 7. BONUS: Tighten default admin credentials warning
---    Update the default admin password to something stronger
---    (in case migration 001 seed was never changed).
--- ============================================================
-UPDATE public.admin_users
-SET password_hash = crypt('CHANGE_ME_IMMEDIATELY_' || gen_random_uuid()::text, gen_salt('bf', 12))
-WHERE email = 'admin@grademyprofessor.bh'
-  AND password_hash = crypt('admin123', password_hash);
+-- 7. Admin credentials — already changed by owner, no action needed.
