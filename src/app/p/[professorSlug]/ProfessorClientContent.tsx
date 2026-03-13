@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import RateButton from "@/components/RateButton";
 import ReviewVoteButtons, { useReviewVotes } from "@/components/ReviewVoteButtons";
@@ -121,18 +121,26 @@ export default function ProfessorClientContent({
     { key: "1", label: t(lang, "dist_awful") },
   ];
 
-  const maxDist = Math.max(...DIST_LABELS.map((d) => ratingDist[d.key] || 0), 1);
-  const reviewIds = reviews.map((r: any) => r.id);
+  const maxDist = useMemo(() => Math.max(...DIST_LABELS.map((d) => ratingDist[d.key] || 0), 1), [ratingDist]);
+  const reviewIds = useMemo(() => reviews.map((r: any) => r.id), [reviews]);
   const { counts, userVotes, setCounts, setUserVotes } = useReviewVotes(reviewIds);
   const { user } = useUser();
 
+  // Refs to always have current state for rollback — fixes race condition
+  const countsRef = useRef(counts);
+  countsRef.current = counts;
+  const userVotesRef = useRef(userVotes);
+  userVotesRef.current = userVotes;
+
   const handleVote = useCallback(async (reviewId: string, vote: "up" | "down") => {
     if (!user) return;
-    const prev = userVotes[reviewId];
-    const prevCounts = { ...(counts[reviewId] || { up: 0, down: 0 }) };
+    const currentVotes = userVotesRef.current;
+    const currentCounts = countsRef.current;
+    const prev = currentVotes[reviewId];
+    const prevCounts = { ...(currentCounts[reviewId] || { up: 0, down: 0 }) };
 
-    const newUserVotes = { ...userVotes };
-    const newCounts = { ...counts, [reviewId]: { ...prevCounts } };
+    const newUserVotes = { ...currentVotes };
+    const newCounts = { ...currentCounts, [reviewId]: { ...prevCounts } };
     if (prev === vote) {
       delete newUserVotes[reviewId];
       newCounts[reviewId][vote]--;
@@ -145,16 +153,21 @@ export default function ProfessorClientContent({
     setCounts(newCounts);
 
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
       await fetch("/api/review-vote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ review_id: reviewId, vote, user_id: user.id }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
     } catch {
-      setUserVotes({ ...userVotes, [reviewId]: prev || "" });
-      setCounts({ ...counts, [reviewId]: prevCounts });
+      // Rollback using refs (always current state)
+      setUserVotes((v) => ({ ...v, [reviewId]: prev || "" }));
+      setCounts((c) => ({ ...c, [reviewId]: prevCounts }));
     }
-  }, [user, userVotes, counts, setCounts, setUserVotes]);
+  }, [user, setCounts, setUserVotes]);
 
   const dateLocale = isRtl ? "ar-BH" : "en-US";
   const arrow = isRtl ? "←" : "→";

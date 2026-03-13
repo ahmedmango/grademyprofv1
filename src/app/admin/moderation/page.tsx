@@ -75,11 +75,22 @@ export default function ModerationPage() {
 
   const performAction = async (reviewId: string, action: string) => {
     setActionLoading(reviewId);
-    await fetch("/api/admin/review-action", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: authHeader() },
-      body: JSON.stringify({ review_id: reviewId, action }),
-    });
+    try {
+      const res = await fetch("/api/admin/review-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: authHeader() },
+        body: JSON.stringify({ review_id: reviewId, action }),
+      });
+      if (!res.ok) {
+        alert(`Action failed: ${res.statusText}`);
+        setActionLoading(null);
+        return;
+      }
+    } catch {
+      alert("Network error — action failed. Please retry.");
+      setActionLoading(null);
+      return;
+    }
     setActionLoading(null);
     fetchQueue();
   };
@@ -87,11 +98,22 @@ export default function ModerationPage() {
   const bulkAction = async (action: string) => {
     if (selected.size === 0) return;
     setActionLoading("bulk");
-    await fetch("/api/admin/review-action", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: authHeader() },
-      body: JSON.stringify({ review_ids: Array.from(selected), action }),
-    });
+    try {
+      const res = await fetch("/api/admin/review-action", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: authHeader() },
+        body: JSON.stringify({ review_ids: Array.from(selected), action }),
+      });
+      if (!res.ok) {
+        alert(`Bulk action failed: ${res.statusText}`);
+        setActionLoading(null);
+        return;
+      }
+    } catch {
+      alert("Network error — bulk action failed. Please retry.");
+      setActionLoading(null);
+      return;
+    }
     setActionLoading(null);
     fetchQueue();
   };

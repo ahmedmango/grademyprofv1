@@ -47,7 +47,10 @@ input, textarea, select {
 /* ============================================================
    BASE STYLES
    ============================================================ */
-* { -webkit-tap-highlight-color: transparent; }
+* {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; /* Eliminate 300ms mobile tap delay */
+}
 
 body {
   font-family: var(--font-body);
@@ -55,6 +58,63 @@ body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================================
+   CLICK FEEDBACK — subtle pulse on all interactive elements
+   Gives immediate visual confirmation that a tap registered.
+   ============================================================ */
+button,
+a,
+[role="button"],
+[onclick],
+.card-flat,
+input[type="checkbox"],
+input[type="radio"],
+.pill {
+  position: relative;
+  transition: background-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+}
+
+/* Quick highlight flash on active/tap */
+button:active:not(:disabled),
+a:active,
+[role="button"]:active,
+.card-flat:active {
+  transition: background-color 0.05s ease, transform 0.05s ease;
+}
+
+/* Ripple overlay via pseudo-element — appears on click/tap */
+button::after,
+a::after,
+[role="button"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+button:active:not(:disabled)::after,
+a:active::after,
+[role="button"]:active::after {
+  opacity: 0.08;
+  transition: opacity 0.05s ease;
+}
+
+/* Dark theme: brighter flash */
+.dark button:active:not(:disabled)::after,
+.dark a:active::after,
+.dark [role="button"]:active::after {
+  opacity: 0.12;
+}
+
+/* Card-level click feedback (for clickable cards/links wrapping cards) */
+.card-flat:active {
+  box-shadow: inset 0 0 0 1px var(--accent-soft);
 }
 
 .font-display { font-family: var(--font-display); }
@@ -108,9 +168,22 @@ body {
   50% { opacity: 0.5; transform: scale(0.92); }
 }
 
-.animate-fade-up { animation: fade-up 0.3s ease-out both; }
-.animate-dropdown { animation: dropdown 0.2s ease-out both; }
-.loading-pulse { animation: loading-pulse 1.4s ease-in-out infinite; }
+.animate-fade-up { animation: fade-up 0.3s ease-out both; will-change: transform, opacity; }
+.animate-dropdown { animation: dropdown 0.2s ease-out both; will-change: transform, opacity; }
+.loading-pulse { animation: loading-pulse 1.4s ease-in-out infinite; will-change: transform, opacity; }
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-dropdown,
+  .loading-pulse {
+    animation: none !important;
+    will-change: auto;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}
 
 /* ============================================================
    SCROLLBAR
@@ -206,6 +279,14 @@ input:focus, textarea:focus, select:focus {
 /* ============================================================
    PRINT
    ============================================================ */
+/* ============================================================
+   HEADER — GPU-accelerated blur
+   ============================================================ */
+header.sticky {
+  will-change: backdrop-filter;
+  contain: layout style;
+}
+
 @media print {
   body { background: white; color: black; }
   header, .no-print { display: none !important; }

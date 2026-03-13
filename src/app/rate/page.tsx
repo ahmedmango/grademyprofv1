@@ -47,12 +47,14 @@ function RateForm() {
   useEffect(() => {
     if (!professorId) return;
     setLoadingCourses(true);
-    fetch(`/api/professor-courses?professorId=${professorId}`)
+    const controller = new AbortController();
+    fetch(`/api/professor-courses?professorId=${professorId}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((d) => setExistingCourses(d.courses || []))
       .catch(() => {})
       .finally(() => setLoadingCourses(false));
-  }, [professorId, hasCoursePreselected]);
+    return () => controller.abort();
+  }, [professorId]);
 
   const selectCourse = (id: string) => {
     setSelectedCourseId((prev) => (prev === id ? "" : id));
@@ -180,6 +182,8 @@ function RateForm() {
         return;
       }
 
+      const submitController = new AbortController();
+      const submitTimeout = setTimeout(() => submitController.abort(), 15000);
       const res = await fetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-anon-user-hash": hash },
@@ -189,7 +193,9 @@ function RateForm() {
           would_take_again: wouldTakeAgain, grade_received: grade,
           tags, comment: comment.trim(), user_id: userId,
         }),
+        signal: submitController.signal,
       });
+      clearTimeout(submitTimeout);
       const data = await res.json();
 
       if (res.ok) {

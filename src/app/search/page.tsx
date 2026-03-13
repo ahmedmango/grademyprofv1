@@ -26,13 +26,19 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
-    if (q.trim().length < 1) { setResults({ professors: [], courses: [], course_professors: [], universities: [] }); return; }
+    if (q.trim().length < 1) { setResults({ professors: [], courses: [], course_professors: [], universities: [] }); setLoading(false); return; }
+    setLoading(true);
+    const controller = new AbortController();
     const timer = setTimeout(async () => {
-      setLoading(true);
-      try { const res = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`); if (res.ok) setResults(await res.json()); } catch {}
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q.trim())}`, { signal: controller.signal });
+        if (res.ok) setResults(await res.json());
+      } catch (e: any) {
+        if (e?.name !== "AbortError") { /* silent */ }
+      }
       setLoading(false);
-    }, 200);
-    return () => clearTimeout(timer);
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); };
   }, [q]);
 
   const saveRecentSearch = (term: string) => {

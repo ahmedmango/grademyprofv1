@@ -136,10 +136,8 @@ export default function HomeClient({
                     <button
                       key={u.id}
                       onClick={() => goToUni(u.slug)}
-                      className="w-full px-4 py-3 flex items-center justify-between transition-all duration-150 active:scale-[0.98]"
+                      className="w-full px-4 py-3 flex items-center justify-between transition-all duration-150 active:scale-[0.98] hover:bg-[var(--accent-soft)]"
                       style={{ borderTop: "1px solid var(--border)", textAlign: "start" }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-soft)"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                     >
                       <div>
                         <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{d.primary}</span>
@@ -163,10 +161,8 @@ export default function HomeClient({
                     <button
                       key={u.id}
                       onClick={() => goToUni(u.slug)}
-                      className="w-full px-4 py-2.5 flex items-center justify-between transition-all duration-150 active:scale-[0.98]"
+                      className="w-full px-4 py-2.5 flex items-center justify-between transition-all duration-150 active:scale-[0.98] hover:bg-[var(--accent-soft)]"
                       style={{ borderTop: "1px solid var(--border)", textAlign: "start" }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-soft)"}
-                      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                     >
                       <div>
                         <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{d.primary}</span>
@@ -188,10 +184,8 @@ export default function HomeClient({
                 <button
                   key={u.id}
                   onClick={() => goToUni(u.slug)}
-                  className="w-full px-4 py-3 flex items-center justify-between transition-all duration-150 active:scale-[0.98]"
+                  className="w-full px-4 py-3 flex items-center justify-between transition-all duration-150 active:scale-[0.98] hover:bg-[var(--accent-soft)]"
                   style={{ borderBottom: "1px solid var(--border)", textAlign: "start" }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = "var(--accent-soft)"}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                 >
                   <div>
                     <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{d.primary}</span>

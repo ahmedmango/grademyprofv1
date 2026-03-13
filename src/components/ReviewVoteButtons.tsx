@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "./UserProvider";
 
@@ -17,18 +17,23 @@ export function useReviewVotes(reviewIds: string[]) {
   const [counts, setCounts] = useState<VoteCounts>({});
   const [userVotes, setUserVotes] = useState<UserVotes>({});
 
+  // Stable key derived from review IDs — prevents unnecessary effect runs
+  const reviewIdsKey = useMemo(() => reviewIds.join(","), [reviewIds]);
+
   useEffect(() => {
-    if (reviewIds.length === 0) return;
-    const params = new URLSearchParams({ review_ids: reviewIds.join(",") });
+    if (!reviewIdsKey) return;
+    const controller = new AbortController();
+    const params = new URLSearchParams({ review_ids: reviewIdsKey });
     if (user?.id) params.set("user_id", user.id);
-    fetch(`/api/review-vote?${params}`)
+    fetch(`/api/review-vote?${params}`, { signal: controller.signal })
       .then((r) => r.json())
       .then((data) => {
         if (data.counts) setCounts(data.counts);
         if (data.userVotes) setUserVotes(data.userVotes);
       })
       .catch(() => {});
-  }, [reviewIds.join(","), user?.id]);
+    return () => controller.abort();
+  }, [reviewIdsKey, user?.id]);
 
   return { counts, userVotes, setCounts, setUserVotes };
 }

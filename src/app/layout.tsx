@@ -71,6 +71,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script defer data-domain="grademyprofessor.net" src="https://plausible.io/js/script.js" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
         <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <style dangerouslySetInnerHTML={{ __html: `:root { --font-arabic: 'IBM Plex Sans Arabic', system-ui, sans-serif; } [dir="rtl"] body { font-family: var(--font-arabic); }` }} />
       </head>

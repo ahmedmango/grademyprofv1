@@ -4,7 +4,10 @@ const { withSentryConfig } = require("@sentry/nextjs");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
-  images: { domains: [] },
+  images: {
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: [],
+  },
   async headers() {
     const isDev = process.env.NODE_ENV === "development";
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://grademyprofessor.bh";
@@ -17,6 +20,12 @@ const nextConfig = {
           { key: "Access-Control-Allow-Headers", value: "Content-Type, x-anon-user-hash, Authorization" },
           { key: "Access-Control-Max-Age", value: "86400" },
           { key: "Cache-Control", value: "no-store" },
+        ],
+      },
+      {
+        source: "/:all*(svg|jpg|jpeg|png|webp|avif|ico|woff|woff2)",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
         ],
       },
     ];

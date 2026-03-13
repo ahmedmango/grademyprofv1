@@ -5,7 +5,7 @@ import { useApp } from "./Providers";
 import { useUser } from "./UserProvider";
 
 export default function Header() {
-  const { theme, setTheme, lang, setLang, resolvedTheme } = useApp();
+  const { theme, setTheme, resolvedTheme } = useApp();
   const { user, logout } = useUser();
 
   const cycleTheme = () => {
@@ -13,15 +13,11 @@ export default function Header() {
     setTheme(next);
   };
 
-  const toggleLang = () => {
-    setLang(lang === "en" ? "ar" : "en");
-  };
-
   return (
     <header className="sticky top-0 z-50 px-5 py-3 flex items-center justify-between bg-page/80 backdrop-blur-lg border-b" style={{ borderColor: "var(--border)" }}>
       <div className="flex items-center gap-4">
         <Link href="/" className="font-display font-extrabold text-lg tracking-tight" style={{ color: "var(--accent)" }}>
-          {lang === "ar" ? "قيّم" : "GMP"}
+          GMP
         </Link>
         <nav className="flex items-center gap-3">
           <Link href="/search" className="hidden sm:inline text-xs font-medium transition-colors hover:opacity-80 px-1 py-2" style={{ color: "var(--text-secondary)" }}>
@@ -53,12 +49,6 @@ export default function Header() {
             Sign in
           </Link>
         )}
-
-        <button onClick={toggleLang}
-          className="px-2.5 py-2 rounded-lg text-xs font-semibold transition-colors"
-          style={{ background: "var(--bg-surface-alt)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
-          {lang === "en" ? "عربي" : "EN"}
-        </button>
 
         <button onClick={cycleTheme}
           className="w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-150 active:scale-90 cursor-pointer"
