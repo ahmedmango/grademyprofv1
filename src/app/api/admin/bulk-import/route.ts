@@ -60,6 +60,9 @@ export async function POST(req: NextRequest) {
   if (!rows?.length)
     return NextResponse.json({ error: "No rows provided" }, { status: 400, headers: NO_STORE_HEADERS });
 
+  if (rows.length > 500)
+    return NextResponse.json({ error: "Maximum 500 rows per import" }, { status: 400, headers: NO_STORE_HEADERS });
+
   const supabase = createServiceClient();
 
   // Load all universities for matching

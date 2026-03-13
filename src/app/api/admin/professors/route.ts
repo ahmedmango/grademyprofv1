@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   if (universityId) query = query.eq("university_id", universityId);
 
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+  if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
 
   // Attach live review counts
   const ids = (data || []).map((p) => p.id);
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     .insert({ name_en, name_ar: name_ar || null, university_id, department_id: department_id || null, slug: slugify(name_en), is_active: true })
     .select().single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+  if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
   return NextResponse.json({ professor: data }, { status: 201, headers: NO_STORE_HEADERS });
 }
 
@@ -80,7 +80,7 @@ export async function PUT(req: NextRequest) {
   const supabase = createServiceClient();
   const { data, error } = await supabase.from("professors").update(updates).eq("id", id).select("*, departments ( name_en ), universities ( name_en )").single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+  if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
   return NextResponse.json({ professor: data }, { headers: NO_STORE_HEADERS });
 }
 
@@ -100,7 +100,7 @@ export async function DELETE(req: NextRequest) {
 
   if (reviewCount && reviewCount > 0) {
     const { error } = await supabase.from("professors").update({ is_active: false }).eq("id", id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+    if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
     return NextResponse.json({ success: true, soft_deleted: true, message: `Deactivated (has ${reviewCount} reviews)` }, { headers: NO_STORE_HEADERS });
   }
 
@@ -108,6 +108,6 @@ export async function DELETE(req: NextRequest) {
   await supabase.from("aggregates_professor").delete().eq("professor_id", id);
 
   const { error } = await supabase.from("professors").delete().eq("id", id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+  if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
   return NextResponse.json({ success: true }, { headers: NO_STORE_HEADERS });
 }

@@ -10,6 +10,11 @@ import logger from "@/lib/logger";
 import { getSessionUser } from "@/lib/session";
 import { sha256Short } from "@/lib/hash";
 
+const VALID_GRADES = new Set([
+  "A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "F", "W", "IP",
+  "Distinction", "Merit", "Credit", "Pass", "Fail",
+]);
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = createServiceClient();
@@ -56,6 +61,16 @@ export async function POST(req: NextRequest) {
     const validRating = (v: number) => typeof v === "number" && v >= 0.5 && v <= 5.0 && (v * 10) % 5 === 0;
     if (!validRating(rating_quality) || !validRating(rating_difficulty))
       return NextResponse.json({ error: "Ratings must be 0.5–5.0 in 0.5 increments" }, { status: 400, headers: NO_STORE_HEADERS });
+
+    // Validate grade_received against allowlist
+    if (grade_received && !VALID_GRADES.has(grade_received)) {
+      return NextResponse.json({ error: "Invalid grade value" }, { status: 400, headers: NO_STORE_HEADERS });
+    }
+
+    // Validate boolean fields
+    if (would_take_again !== undefined && would_take_again !== null && typeof would_take_again !== "boolean") {
+      return NextResponse.json({ error: "Invalid would_take_again value" }, { status: 400, headers: NO_STORE_HEADERS });
+    }
 
     const validTags = (tags || []).filter((t: string) => VALID_TAGS.includes(t as any)).slice(0, RATE_LIMITS.MAX_TAGS);
     const cleanComment = (comment || "").trim().slice(0, RATE_LIMITS.MAX_COMMENT_LENGTH).replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[REDACTED]").replace(/\+?973\s?\d{4}\s?\d{4}/g, "[REDACTED]");

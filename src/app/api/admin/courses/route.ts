@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   if (universityId) query = query.eq("university_id", universityId);
 
   const { data, error } = await query;
-  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+  if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
   return NextResponse.json({ courses: data }, { headers: NO_STORE_HEADERS });
 }
 
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     .insert({ code, title_en, title_ar, university_id, department_id, slug: slugify(`${code}-${title_en}`) })
     .select().single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+  if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
   return NextResponse.json({ course: data }, { status: 201, headers: NO_STORE_HEADERS });
 }
 
@@ -61,7 +61,7 @@ export async function PUT(req: NextRequest) {
   const supabase = createServiceClient();
   const { data, error } = await supabase.from("courses").update(updates).eq("id", id).select().single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+  if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
   return NextResponse.json({ course: data }, { headers: NO_STORE_HEADERS });
 }
 
@@ -73,6 +73,6 @@ export async function DELETE(req: NextRequest) {
   const supabase = createServiceClient();
   const { error } = await supabase.from("courses").delete().eq("id", id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+  if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
   return NextResponse.json({ success: true }, { headers: NO_STORE_HEADERS });
 }

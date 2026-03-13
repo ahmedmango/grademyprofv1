@@ -73,12 +73,31 @@ export function validateEmail(email: string): { valid: boolean; error: string | 
   return { valid: true, error: null };
 }
 
+const COMMON_PASSWORDS = new Set([
+  "password", "123456", "12345678", "qwerty", "abc123", "monkey",
+  "1234567", "letmein", "trustno1", "dragon", "baseball", "iloveyou",
+  "master", "sunshine", "ashley", "michael", "shadow", "123123",
+  "654321", "superman", "qazwsx", "password1", "password123",
+]);
+
 export function validatePassword(password: string): { valid: boolean; error: string | null } {
-  if (password.length < 6) {
-    return { valid: false, error: "Password must be at least 6 characters" };
+  if (password.length < 8) {
+    return { valid: false, error: "Password must be at least 8 characters" };
   }
   if (password.length > 100) {
     return { valid: false, error: "Password is too long" };
+  }
+  if (COMMON_PASSWORDS.has(password.toLowerCase())) {
+    return { valid: false, error: "This password is too common. Please choose a stronger one" };
+  }
+  // Require at least 2 of: uppercase, lowercase, digit, special char
+  let classes = 0;
+  if (/[a-z]/.test(password)) classes++;
+  if (/[A-Z]/.test(password)) classes++;
+  if (/[0-9]/.test(password)) classes++;
+  if (/[^a-zA-Z0-9]/.test(password)) classes++;
+  if (classes < 2) {
+    return { valid: false, error: "Password must include at least 2 of: lowercase, uppercase, number, special character" };
   }
   return { valid: true, error: null };
 }

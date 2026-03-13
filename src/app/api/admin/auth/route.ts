@@ -4,6 +4,21 @@ import { signJWT } from "@/lib/jwt";
 import { NO_STORE_HEADERS } from "@/lib/api-headers";
 import logger from "@/lib/logger";
 
+/** Constant-time string comparison to prevent timing attacks */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    // Still compare full length of `b` to avoid leaking length info
+    let result = 1;
+    for (let i = 0; i < b.length; i++) result |= b.charCodeAt(i);
+    return false && result === 0; // always false, but compiler can't optimize away the loop
+  }
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || (
   process.env.NODE_ENV === "production"
     ? (() => { console.error("CRITICAL: ADMIN_JWT_SECRET is not set in production"); return ""; })()
@@ -21,8 +36,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate shared secret
-    if (secret !== process.env.ADMIN_SECRET) {
+    // Validate shared secret (timing-safe comparison)
+    const expected = process.env.ADMIN_SECRET || "";
+    if (!expected || !timingSafeEqual(secret, expected)) {
       return NextResponse.json(
         { error: "Invalid credentials" },
         { status: 401, headers: NO_STORE_HEADERS },

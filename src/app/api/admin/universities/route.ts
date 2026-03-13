@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await supabase
     .from("universities").select("*").order("name_en");
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+  if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
   return NextResponse.json({ universities: data }, { headers: NO_STORE_HEADERS });
 }
 
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     .insert({ name_en, name_ar, country: country || "BH", slug: slugify(name_en) })
     .select().single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+  if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
   return NextResponse.json({ university: data }, { status: 201, headers: NO_STORE_HEADERS });
 }
 
@@ -51,7 +51,7 @@ export async function PUT(req: NextRequest) {
   const { data, error } = await supabase
     .from("universities").update(updates).eq("id", id).select().single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+  if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
   return NextResponse.json({ university: data }, { headers: NO_STORE_HEADERS });
 }
 
@@ -65,6 +65,6 @@ export async function DELETE(req: NextRequest) {
   const supabase = createServiceClient();
   const { error } = await supabase.from("universities").delete().eq("id", id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500, headers: NO_STORE_HEADERS });
+  if (error) return NextResponse.json({ error: "Database operation failed" }, { status: 500, headers: NO_STORE_HEADERS });
   return NextResponse.json({ success: true }, { headers: NO_STORE_HEADERS });
 }

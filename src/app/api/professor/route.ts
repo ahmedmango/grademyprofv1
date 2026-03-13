@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
   const sort = req.nextUrl.searchParams.get("sort") || "newest";
   const courseId = req.nextUrl.searchParams.get("course") || null;
-  const page = parseInt(req.nextUrl.searchParams.get("page") || "1");
+  const page = Math.max(1, parseInt(req.nextUrl.searchParams.get("page") || "1") || 1);
   const limit = 20;
   const offset = (page - 1) * limit;
 

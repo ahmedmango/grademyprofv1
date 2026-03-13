@@ -11,7 +11,7 @@ const SESSION_SECRET = process.env.SESSION_SECRET || (
     : "dev-session-secret"
 );
 const COOKIE_NAME = "gmp_session";
-const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days
 
 function makeSessionCookie(res: NextResponse, token: string) {
   res.cookies.set({
