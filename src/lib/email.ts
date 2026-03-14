@@ -148,9 +148,9 @@ export async function sendAdminNewReview(opts: {
   reviewId: string;
   isLoggedIn: boolean;
 }): Promise<void> {
-  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL;
-  if (!process.env.RESEND_API_KEY || !adminEmail) {
-    logger.warn("[email] skipping admin notification — RESEND_API_KEY or ADMIN_NOTIFICATION_EMAIL not set");
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || "ahaffadh@gmail.com";
+  if (!process.env.RESEND_API_KEY) {
+    logger.warn("[email] skipping admin notification — RESEND_API_KEY not set");
     return;
   }
   logger.debug("[email] sendAdminNewReview →", `prof="${opts.professorName}" status=${opts.status}`);
