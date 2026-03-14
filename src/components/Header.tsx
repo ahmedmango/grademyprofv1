@@ -26,9 +26,6 @@ export default function Header() {
           <Link href="/my-reviews" className="text-xs font-medium transition-colors hover:opacity-80 px-1 py-2" style={{ color: "var(--text-secondary)" }}>
             My Reviews
           </Link>
-          <Link href="/schedule" className="text-xs font-medium transition-colors hover:opacity-80 px-1 py-2" style={{ color: "var(--text-secondary)" }}>
-            Schedule
-          </Link>
           {user && (
             <span className="text-xs font-semibold" style={{ color: "var(--accent)" }}>
               {user.username}
